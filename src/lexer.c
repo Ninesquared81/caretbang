@@ -3,8 +3,9 @@
 
 ssize_t lex(char *source, struct token tokens[TOKENS_MAX]) {
   ssize_t n = 0;
-  int r = 0;
-  int c = 0;
+  int row = 0;
+  int col = 0;
+  char c;
   while ((c = *source++) && n < TOKENS_MAX) {
     enum token_type type;
     switch (c) {
@@ -60,14 +61,16 @@ ssize_t lex(char *source, struct token tokens[TOKENS_MAX]) {
       type = WHIRLPOOL;
       break;
     case '\n':
-      ++c;
+      ++row;
+      col = -1;
       /* fallthrough */
     default:
       /* skip adding to tokens array */
+      ++col;
       continue;
     }
-    tokens[n++] = (struct token) {.type = type, .pos = {r, c}};
-    ++r;
+    tokens[n++] = (struct token) {.type = type, .pos = {row, col}};
+    ++col;
   }
   if (n >= TOKENS_MAX) return -1;
   return n;
