@@ -69,8 +69,7 @@ ssize_t lex(char *source, struct token tokens[TOKENS_MAX]) {
       ++col;
       continue;
     }
-    tokens[n++] = (struct token) {.type = type, .pos = {row, col}};
-    ++col;
+    tokens[n++] = (struct token) {.type = type, .pos = {row, col++}};
   }
   if (n >= TOKENS_MAX) return -1;
   return n;
