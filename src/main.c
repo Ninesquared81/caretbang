@@ -4,15 +4,20 @@
 
 #include "lexer.h"
 #include "sizelims.h"
+#include "stack.h"
 
 
 int main(int argc, char **argv) {
   (void)argc; (void)argv;
   struct token tokens[TOKENS_MAX];
-  ssize_t n = lex("", tokens);
+  ssize_t n = lex("^!", tokens);
   if (n == -1) {
     fprintf(stderr, "Maximum token limit reached.\n");
     exit(EXIT_FAILURE);
+  }
+  for (int i = 0; i < n; ++i) {
+    print_token(tokens[i]);
+    printf(" ");
   }
   return EXIT_SUCCESS;
 }

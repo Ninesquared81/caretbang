@@ -2,5 +2,7 @@
 #define SIZELIMS_H
 
 #define TOKENS_MAX 16*1024
+#define DATA_STACK_BLOCK_SIZE 1024
+#define METASTACK_BLOCK_SIZE 64
 
 #endif
