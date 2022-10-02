@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   ssize_t n = lex("^!", tokens);
   if (n == -1) {
     fprintf(stderr, "Maximum token limit reached.\n");
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   for (int i = 0; i < n; ++i) {
     print_token(tokens[i]);
