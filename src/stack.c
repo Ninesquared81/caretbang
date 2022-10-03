@@ -61,15 +61,12 @@ void destory_metastack(struct metastack *stack) {
   struct metastack_block *current = stack->start;
   
   struct metastack_block *next;
-  if (current) { /* not a guard clause since we still need to NULL dangling pointers */
-    while (current->prev != stack->top_block) {
-      next = current->next;
-      /* stack might not be empty */
-      destroy_data_stack(current);
-      free(current);
-      current = next;
-    }
-  }
+
+  while (stack->top_block) {
+    /* destroy each stack in metastack before freeing the memory for the entire structure */
+    struct data_stack data_stack = pop_metastack(stack);
+    destroy_data_stack(&data_stack);
+  }  
   
   while (current) {
     /* could be stack blocks after 'top_block' (not freed until end to reduce malloc calls) */
@@ -97,7 +94,7 @@ void destroy_bracket_stack(struct bracket_stack *stack) {
   /* NULL dangling pointers */
   stack->start = NULL;
   stack->top_block = NULL;
-  stack->top_inde = 0;
+  stack->top_index = 0;
 }
 
 void push_data_stack(struct data_stack *stack, uint8_t element) {
@@ -110,7 +107,7 @@ void push_data_stack(struct data_stack *stack, uint8_t element) {
     stack->top_index = 0;
     struct data_stack_block *next_block = stack->top_block->next;
     if (!next_block) {
-      next_block = new_data_stack_block();
+      next_block = new_data_stack_block(stack);
     }
     stack->top_block = next_block;
     next_block->elements[0] = element;
@@ -119,16 +116,16 @@ void push_data_stack(struct data_stack *stack, uint8_t element) {
 
 void push_metastack(struct metastack *stack, struct data_stack data_stack) {
   if (stack->top_index < METASTACK_BLOCK_SIZE - 1) {
-    stack->top_block->stacks[++stack_top_index] = data_stack;
+    stack->top_block->stacks[++stack->top_index] = data_stack;
   }
   else {
     stack->top_index = 0;
-    struct data_stack_block *next_block = stack->top_block->next;
+    struct metastack_block *next_block = stack->top_block->next;
     if (!next_block) {
-      next_block = new_metastack_block();
+      next_block = new_metastack_block(stack);
     }
     stack->top_block = next_block;
-    next_block->stacks[0] = stack;
+    next_block->stacks[0] = data_stack;
   }
 }
 
@@ -140,7 +137,7 @@ void push_bracket_stack(struct bracket_stack *stack, enum bracket_type bracket) 
     stack->top_index = 0;
     struct bracket_stack_block *next_block = stack->top_block->next;
     if (!next_block) {
-      next_block = new_bracket_stack_block();
+      next_block = new_bracket_stack_block(stack);
     }
     stack->top_block = next_block;
     next_block->brackets[0] = bracket;
@@ -155,7 +152,7 @@ uint8_t pop_data_stack(struct data_stack *stack) {
   }
   else {
     /* change block */
-    stack->top_index = DATA_STACK_SIZE - 1;
+    stack->top_index = DATA_STACK_BLOCK_SIZE - 1;
     stack->top_block = stack->top_block->prev;
   }
   return element;
@@ -169,21 +166,21 @@ struct data_stack pop_metastack(struct metastack *stack) {
   }
   else {
     /* change block */
-    stack->top_index = METASTACK_SIZE - 1;
+    stack->top_index = METASTACK_BLOCK_SIZE - 1;
     stack->top_block = stack->top_block->prev;
   }
   return data_stack;
 }
 
 enum bracket_type pop_bracket_stack(struct bracket_stack *stack) {
-  enum bracket bracket = stack->top_block->brackets[stack->top_index];
+  enum bracket_type bracket = stack->top_block->brackets[stack->top_index];
   if (stack->top_index > 0) {
     /* normal case */
     stack->top_index--;
   }
   else {
     /* change block */
-    stack->top_index = BRACKET_STACK_SIZE - 1;
+    stack->top_index = BRACKET_STACK_BLOCK_SIZE - 1;
     stack->top_block = stack->top_block->prev;
   }
   return bracket;

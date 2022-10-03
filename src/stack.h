@@ -19,7 +19,7 @@ struct data_stack {
 
 struct metastack_block {
   struct metastack_block *prev;
-  struct netastack_block *next;
+  struct metastack_block *next;
   struct data_stack stacks[METASTACK_BLOCK_SIZE];
 };
 

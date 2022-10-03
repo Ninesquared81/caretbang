@@ -10,7 +10,7 @@
 int main(int argc, char **argv) {
   (void)argc; (void)argv;
   struct token *tokens = malloc(TOKENS_MAX * sizeof *tokens);
-  ssize_t n = lex("^!", *tokens);
+  ssize_t n = lex("^!", tokens);
   if (n == -1) {
     fprintf(stderr, "Maximum token limit reached.\n");
     return EXIT_FAILURE;
