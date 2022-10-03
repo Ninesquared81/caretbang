@@ -1,27 +1,102 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 
 #include "lexer.h"
 #include "sizelims.h"
 #include "stack.h"
+#include "interpreter.h"
 
+
+static char *input_buffer = NULL;
+static struct token *tokens;
+
+
+void kill_input_buffer(void);
+void kill_tokens(void);
+
+void run(void);
+void parse_cmd(int argc, char **argv, char **filename);
 
 int main(int argc, char **argv) {
-  (void)argc; (void)argv;
-  struct token *tokens = malloc(TOKENS_MAX * sizeof *tokens);
+  atexit(kill_input_buffer);
+  atexit(kill_tokens);
+  
+  char *filename;
+  parse_cmd(argc, argv, &filename);
+
+  input_buffer = calloc(TOKENS_MAX, sizeof *input_buffer);
+  if (!input_buffer) {
+    fprintf(stderr, "Could not allocate input_buffer!\n");
+    return EXIT_FAILURE;
+  }
+  
+  tokens = calloc(TOKENS_MAX, sizeof *tokens);
   if (!tokens) {
-    fprintf(stderr, "malloc() failed!\n");
+    fprintf(stderr, "Could not allocate tokens!\n");
     return EXIT_FAILURE;
   }
-  ssize_t n = lex("^!", tokens);
-  if (n == -1) {
-    fprintf(stderr, "Maximum token limit reached.\n");
-    return EXIT_FAILURE;
+  
+  if (filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+      fprintf(stderr, "Could not open file '%s'.\n", filename);
+      return EXIT_FAILURE;
+    }
+    fread(input_buffer, sizeof *input_buffer, sizeof input_buffer - sizeof *input_buffer, fp);
+    fclose(fp);
+    run();
   }
-  for (int i = 0; i < n; ++i) {
-    print_token(tokens[i]);
-    printf(" ");
+  else {
+    while (fgets(input_buffer, sizeof input_buffer, stdin)) {
+      run();
+    }
   }
+
   return EXIT_SUCCESS;
+}
+
+void run(void) {
+  ssize_t n = lex(input_buffer, tokens);
+  if (n < 0) {
+    fprintf(stderr, "Too many tokens!\n");
+    exit(EXIT_FAILURE);
+  }
+  interpret(tokens);
+}
+
+void parse_cmd(int argc, char **argv, char **filename) {
+  const char *usage = "Usage: %s [filename]\n";
+  const char *help_msg = "\nPositional arguments:\n"
+                         "filename -- (optional) name of source code file to interpret;\n"
+                         "            if omitted, enter interactive mode.\n"
+                         "Options:\n"
+                         "-h, --help -- show this help message.\n\n";
+  *filename = NULL;
+  if (argc > 1) {
+    for (int i = 1; i < argc; ++i) {
+      char *argument = argv[i];
+      if (strcmp(argument, "--") == 0) break;
+      if (strcmp(argument, "-h") == 0 || strcmp(argument, "--help") == 0) {
+	printf(usage, argv[0]);
+	printf(help_msg);
+	exit(EXIT_FAILURE);
+      }
+      else if (argument[0] == '-') {
+	printf("Unrecognised argument %s\n", argument);
+	printf(usage, argv[0]);
+	printf("For help type '%s -h'.", argv[0]);
+	exit(EXIT_FAILURE);
+      }
+    }
+    *filename = argv[1];
+  }  
+}
+
+void kill_input_buffer(void) {
+  if (input_buffer) free(input_buffer);
+}
+
+void kill_tokens(void) {
+  if (tokens) free(tokens);
 }
