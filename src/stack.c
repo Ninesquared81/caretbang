@@ -28,8 +28,8 @@ struct metastack_block *new_metastack_block(struct metastack *stack) {
   return block;
 }
 
-struct bracket_stack_block *new_bracket_stack_block(struct bracket_stack *stack) {
-  struct bracket_stack_block *block = malloc(sizeof *block);
+struct symbol_stack_block *new_symbol_stack_block(struct symbol_stack *stack) {
+  struct symbol_stack_block *block = malloc(sizeof *block);
   if (!block) return NULL; /* malloc() failed */
 
   block->prev = stack->top_block;
@@ -57,7 +57,7 @@ void destroy_data_stack(struct data_stack *stack) {
   stack->top_index = 0;
 }
 
-void destory_metastack(struct metastack *stack) {
+void destroy_metastack(struct metastack *stack) {
   struct metastack_block *current = stack->start;
   
   struct metastack_block *next;
@@ -81,10 +81,10 @@ void destory_metastack(struct metastack *stack) {
   stack->top_index = 0;
 }
 
-void destroy_bracket_stack(struct bracket_stack *stack) {
-  struct bracket_stack_block *current = stack->start;
+void destroy_symbol_stack(struct symbol_stack *stack) {
+  struct symbol_stack_block *current = stack->start;
   
-  struct bracket_stack_block *next;
+  struct symbol_stack_block *next;
   while (current) {
     next = current->next;
     free(current);
@@ -129,18 +129,18 @@ void push_metastack(struct metastack *stack, struct data_stack data_stack) {
   }
 }
 
-void push_bracket_stack(struct bracket_stack *stack, enum bracket_type bracket) {
-  if (stack->top_index < BRACKET_STACK_BLOCK_SIZE - 1) {
-    stack->top_block->brackets[++stack->top_index] = bracket;
+void push_symbol_stack(struct symbol_stack *stack, struct symbol symbol) {
+  if (stack->top_index < SYMBOL_STACK_BLOCK_SIZE - 1) {
+    stack->top_block->symbols[++stack->top_index] = symbol;
   }
   else {
     stack->top_index = 0;
-    struct bracket_stack_block *next_block = stack->top_block->next;
+    struct symbol_stack_block *next_block = stack->top_block->next;
     if (!next_block) {
-      next_block = new_bracket_stack_block(stack);
+      next_block = new_symbol_stack_block(stack);
     }
     stack->top_block = next_block;
-    next_block->brackets[0] = bracket;
+    next_block->symbols[0] = symbol;
   }
 }
 
@@ -172,16 +172,16 @@ struct data_stack pop_metastack(struct metastack *stack) {
   return data_stack;
 }
 
-enum bracket_type pop_bracket_stack(struct bracket_stack *stack) {
-  enum bracket_type bracket = stack->top_block->brackets[stack->top_index];
+struct symbol pop_symbol_stack(struct symbol_stack *stack) {
+  struct symbol symbol = stack->top_block->symbols[stack->top_index];
   if (stack->top_index > 0) {
     /* normal case */
     stack->top_index--;
   }
   else {
     /* change block */
-    stack->top_index = BRACKET_STACK_BLOCK_SIZE - 1;
+    stack->top_index = SYMBOL_STACK_BLOCK_SIZE - 1;
     stack->top_block = stack->top_block->prev;
   }
-  return bracket;
+  return symbol;
 }
