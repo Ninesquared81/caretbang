@@ -1,8 +1,11 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "lexer.h"
 #include "sizelims.h"
 
-ssize_t lex(char *source, struct token tokens[TOKENS_MAX]) {
-  ssize_t n = 0;
+size_t lex(char *source, struct token tokens[TOKENS_MAX]) {
+  size_t n = 0;
   int row = 0;
   int col = 0;
   char c;
@@ -71,6 +74,9 @@ ssize_t lex(char *source, struct token tokens[TOKENS_MAX]) {
     }
     tokens[n++] = (struct token) {.type = type, .pos = {row, col++}};
   }
-  if (n >= TOKENS_MAX) return -1;
+  if (n >= TOKENS_MAX) {
+    fprintf(stderr, "Token limit exceeded.\n");
+    exit(EXIT_FAILURE);
+  };
   return n;
 }

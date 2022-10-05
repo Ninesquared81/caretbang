@@ -1,8 +1,8 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
-#include "token.h"
+#include "ast.h"
 
-void interpret(struct token tokens[]);
+void interpret(struct ast_node ast[], size_t length);
 
 #endif
