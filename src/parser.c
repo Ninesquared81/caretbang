@@ -7,8 +7,8 @@
 
 size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
   size_t n = 0;
-  struct delim_stack delim_stack = {.start =  malloc(sizeof *delim_stack.start)};
-  if (!delim_stack.start) {
+  struct delim_stack delim_stack = new_delim_stack();
+  if (!IS_STACK_INIT(delim_stack)) {
     fprintf(stderr, "Failed to allocate delim_stack in 'parser.c' in  parse().");
     exit(EXIT_FAILURE);
   }
@@ -28,11 +28,13 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
     case PLUS:
     case STAR:
     case WHIRLPOOL:
+      printf("simple");
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
       break;
 
     /* special case */
     case HASH: {
+      printf("hash");
       struct delim delim = {.type = LOOP_START};
       struct ast_node node = {.token = token};
       if (find_delim_stack(&delim_stack, &delim)) {
@@ -47,10 +49,12 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
       
     /* body tokens */
     case BKT_CURLY_LEFT:
+      printf("{");
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
       push_delim_stack(&delim_stack, (struct delim) {.type = STACK_START, .index = n});
       break;
     case BKT_CURLY_RIGHT: {
+      printf("}");
       struct delim delim;
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != STACK_START) {
 	destroy_delim_stack(&delim_stack);
@@ -63,10 +67,12 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
     }
     
     case BKT_SQUARE_LEFT:
+      printf("[");
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
       push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});
       break;
     case BKT_SQUARE_RIGHT: {
+      printf("]");
       struct delim delim;
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
 	destroy_delim_stack(&delim_stack);

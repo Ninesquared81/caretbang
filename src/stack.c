@@ -2,6 +2,23 @@
 #include <stdbool.h>
 
 #include "stack.h"
+#define printf __mingw_printf
+
+struct data_stack new_data_stack(void) {
+  struct data_stack_block *first_block = malloc(sizeof *first_block);
+  return (struct data_stack) {.meminfo.first_block = first_block};
+}
+
+struct metastack new_metastack(void) {
+  struct metastack_block *first_block = malloc(sizeof *first_block);
+  return (struct metastack) {.meminfo.first_block = first_block};
+}
+
+struct delim_stack new_delim_stack(void) {
+  struct delim_stack *first_block = malloc(sizeof *first_block);
+  return (struct delim_stack) {.meminfo.first_block = first_block};
+}
+
 
 struct data_stack_block *new_data_stack_block(struct data_stack *stack) {
   struct data_stack_block *block = malloc(sizeof *block);
@@ -44,6 +61,7 @@ struct delim_stack_block *new_delim_stack_block(struct delim_stack *stack) {
   
   return block;
 }
+
 
 void destroy_data_stack(struct data_stack *stack) {
   struct data_stack_block *current = stack->meminfo.first_block;
@@ -104,8 +122,23 @@ void destroy_delim_stack(struct delim_stack *stack) {
   stack->top_index = 0;
 }
 
-void push_data_stack(struct data_stack *stack, uint8_t element) {
-  if (stack->top_index < DATA_STACK_BLOCK_SIZE - 1) {
+
+void *push_data_stack(struct data_stack *stack, uint8_t element) {
+  if (IS_STACK_EMPTY(*stack)) {
+    /* empty stack */
+    struct data_stack_block *top_block = stack->meminfo.first_block;
+    if (!top_block) {
+      top_block = malloc(sizeof *stack->top_block);
+      if (!top_block) return NULL;
+    }
+    top_block->prev = NULL;
+    top_block->next = NULL;
+    top_block->elements[0] = element;
+
+    stack->top_block = top_block;
+    stack->top_index = 1;
+  }
+  else if (stack->top_index < DATA_STACK_BLOCK_SIZE - 1) {
     /* normal case */
     stack->top_block->elements[++stack->top_index] = element;
   }
@@ -115,15 +148,31 @@ void push_data_stack(struct data_stack *stack, uint8_t element) {
     struct data_stack_block *next_block = stack->top_block->next;
     if (!next_block) {
       next_block = new_data_stack_block(stack);
+      if (!next_block) return NULL;
     }
     stack->top_block = next_block;
     next_block->elements[0] = element;
   }
   ++stack->size;
+  return stack->top_block;
 }
 
-void push_metastack(struct metastack *stack, struct data_stack data_stack) {
-  if (stack->top_index < METASTACK_BLOCK_SIZE - 1) {
+void *push_metastack(struct metastack *stack, struct data_stack data_stack) {
+  if (IS_STACK_EMPTY(*stack)) {
+    /* empty stack */
+    struct metastack_block *top_block = stack->meminfo.first_block;
+    if (!top_block) {
+      top_block = malloc(sizeof *stack->top_block);
+      if (!top_block) return NULL;
+    }
+    top_block->prev = NULL;
+    top_block->next = NULL;
+    top_block->stacks[0] = data_stack;
+
+    stack->top_block = top_block;
+    stack->top_index = 1;   
+  } 
+  else if (stack->top_index < METASTACK_BLOCK_SIZE - 1) {
     stack->top_block->stacks[++stack->top_index] = data_stack;
   }
   else {
@@ -131,15 +180,31 @@ void push_metastack(struct metastack *stack, struct data_stack data_stack) {
     struct metastack_block *next_block = stack->top_block->next;
     if (!next_block) {
       next_block = new_metastack_block(stack);
+      if (!next_block) return NULL;
     }
     stack->top_block = next_block;
     next_block->stacks[0] = data_stack;
   }
   ++stack->size;
+  return stack->top_block;
 }
 
-void push_delim_stack(struct delim_stack *stack, struct delim delim) {
-  if (stack->top_index < DELIM_STACK_BLOCK_SIZE - 1) {
+void *push_delim_stack(struct delim_stack *stack, struct delim delim) {
+  if (IS_STACK_EMPTY(*stack)) {
+    /* empty stack */
+    struct delim_stack_block *top_block = stack->meminfo.first_block;
+    if (!top_block) {
+      top_block = malloc(sizeof *stack->top_block);
+      if (!top_block) return NULL;
+    }
+    top_block->prev = NULL;
+    top_block->next = NULL;
+    top_block->delims[0] = delim;
+
+    stack->top_block = top_block;
+    stack->top_index = 1;
+  }
+  else if (stack->top_index < DELIM_STACK_BLOCK_SIZE - 1) {
     stack->top_block->delims[++stack->top_index] = delim;
   }
   else {
@@ -147,12 +212,15 @@ void push_delim_stack(struct delim_stack *stack, struct delim delim) {
     struct delim_stack_block *next_block = stack->top_block->next;
     if (!next_block) {
       next_block = new_delim_stack_block(stack);
+      if (!next_block) return NULL;
     }
     stack->top_block = next_block;
     next_block->delims[0] = delim;
   }
   ++stack->size;
+  return stack->top_block;
 }
+
 
 uint8_t pop_data_stack(struct data_stack *stack) {
   uint8_t element = stack->top_block->elements[stack->top_index];
@@ -185,6 +253,10 @@ struct data_stack pop_metastack(struct metastack *stack) {
 }
 
 struct delim pop_delim_stack(struct delim_stack *stack) {
+  puts("hi");
+  printf("top_block=%p, top_index=%zu, size=%zu, first_block=%p, block_count=%zu",
+	 (void *)stack->top_block, stack->top_index, stack->size,
+	 (void *)stack->meminfo.first_block, stack->meminfo.block_count);
   struct delim delim = stack->top_block->delims[stack->top_index];
   if (stack->top_index > 0) {
     /* normal case */
@@ -198,6 +270,7 @@ struct delim pop_delim_stack(struct delim_stack *stack) {
   --stack->size;
   return delim;
 }
+
 
 bool find_delim_stack(struct delim_stack *stack, struct delim *delim) {
   struct delim_stack_block *current = stack->top_block;

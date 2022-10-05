@@ -185,8 +185,8 @@ void interpret(struct ast_node ast[], size_t length) {
 }
 
 struct data_stack new_main_stack(void) {
-  struct data_stack new_main = {.meminfo.first_block = malloc(sizeof *new_main.meminfo.first_block)};
-  if (!new_main.meminfo.first_block) {
+  struct data_stack new_main = new_data_stack();
+  if (!IS_STACK_INIT(new_main)) {
     fprintf(stderr, "Could not create new main stack.\n");
     exit(EXIT_FAILURE);
   }
@@ -195,7 +195,7 @@ struct data_stack new_main_stack(void) {
 
 void initialize_stacks(void) {
   if (!auxiliary_stack.meminfo.first_block) {
-    struct data_stack_block *new = malloc(sizeof *auxiliary_stack.meminfo.first_block);
+    struct data_stack_block *new = malloc(sizeof *new);
     if (!new) {
       fprintf(stderr, "Failed to initialize auxiliary_stack.\n");
       exit(EXIT_FAILURE);
@@ -204,7 +204,7 @@ void initialize_stacks(void) {
     atexit(kill_auxiliary_stack);
   }
   if (!metastack.meminfo.first_block) {
-    struct metastack_block *new = malloc(sizeof *metastack.meminfo.first_block);
+    struct metastack_block *new = malloc(sizeof *new);
     if (!new) {
       fprintf(stderr, "Failed to initialize metastack.\n");
       exit(EXIT_FAILURE);
