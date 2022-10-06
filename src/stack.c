@@ -4,19 +4,34 @@
 #include "stack.h"
 #define printf __mingw_printf
 
-struct data_stack new_data_stack(void) {
+void *init_data_stack(struct data_stack *stack) {
   struct data_stack_block *first_block = malloc(sizeof *first_block);
-  return (struct data_stack) {.meminfo.first_block = first_block};
+  stack->top_block = NULL;
+  stack->top_index = NULL;
+  stack->size = 0;
+  stack->meminfo.first_block = first_block;
+  stack->meminfo.block_count = 1;
+  return first_block;
 }
 
-struct metastack new_metastack(void) {
+void *init_metastack(struct metastack *stack) {
   struct metastack_block *first_block = malloc(sizeof *first_block);
-  return (struct metastack) {.meminfo.first_block = first_block};
+  stack->top_block = NULL;
+  stack->top_index = NULL;
+  stack->size = 0;
+  stack->meminfo.first_block = first_block;
+  stack->meminfo.block_count = 1;  
+  return first_block;
 }
 
-struct delim_stack new_delim_stack(void) {
-  struct delim_stack *first_block = malloc(sizeof *first_block);
-  return (struct delim_stack) {.meminfo.first_block = first_block};
+void *init_delim_stack(struct delim_stack *stack) {
+  struct delim_stack_block *first_block = malloc(sizeof *first_block);
+  stack->top_block = NULL;
+  stack->top_index = NULL;
+  stack->size = 0;
+  stack->meminfo.first_block = first_block;
+  stack->meminfo.block_count = 1;  
+  return first_block;
 }
 
 
@@ -85,7 +100,7 @@ void destroy_metastack(struct metastack *stack) {
   
   struct metastack_block *next;
 
-  while (stack->top_block) {
+  while (!IS_STACK_EMPTY(*stack)) {
     /* destroy each stack in metastack before freeing the memory for the entire structure */
     struct data_stack data_stack = pop_metastack(stack);
     destroy_data_stack(&data_stack);

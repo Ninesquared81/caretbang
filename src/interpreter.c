@@ -6,24 +6,20 @@
 #include "interpreter.h"
 #include "stack.h"
 
+static struct data_stack main_stack = {0};
 static struct data_stack auxiliary_stack = {0};
 static struct metastack metastack = {0};
 
+void kill_main_stack(void);
 void kill_auxiliary_stack(void);
 void kill_metastack(void);
 
 void initialize_stacks(void);
-struct data_stack new_main_stack(void);
+void new_main_stack(void);
+void return_main_stack(void);
 
 void interpret(struct ast_node ast[], size_t length) {
   initialize_stacks();
-  struct data_stack main_stack;
-  if (!metastack.top_block) {
-    main_stack = new_main_stack();
-  }
-  else {
-    main_stack = pop_metastack(&metastack);
-  }
   for (size_t i = 0; i < length; ++i) {
     struct ast_node node = ast[i];
     switch (node.token.type) {
@@ -58,12 +54,10 @@ void interpret(struct ast_node ast[], size_t length) {
       break;
     }
     case BKT_CURLY_LEFT:
-      push_metastack(&metastack, main_stack);
-      main_stack = new_main_stack();
+      new_main_stack();
       break;
     case BKT_CURLY_RIGHT: {
-      destroy_data_stack(&main_stack);
-      main_stack = pop_metastack(&metastack);
+      return_main_stack();
       size_t temp = node.jump_index;
       node.jump_index = i + 1;
       i = temp - 1;
@@ -184,41 +178,52 @@ void interpret(struct ast_node ast[], size_t length) {
   }
 }
 
-struct data_stack new_main_stack(void) {
-  struct data_stack new_main = new_data_stack();
-  if (!IS_STACK_INIT(new_main)) {
+void new_main_stack(void) {
+  push_metastack(&metastack, main_stack);
+  if (!init_data_stack(&main_stack)) {
     fprintf(stderr, "Could not create new main stack.\n");
     exit(EXIT_FAILURE);
   }
-  return new_main;
+}
+
+void return_main_stack(void) {
+  destroy_data_stack(&main_stack);
+  main_stack = pop_metastack(&metastack);
 }
 
 void initialize_stacks(void) {
-  if (!auxiliary_stack.meminfo.first_block) {
-    struct data_stack_block *new = malloc(sizeof *new);
-    if (!new) {
+  if (!IS_STACK_INIT(main_stack)) {
+    if (!init_data_stack(&main_stack)) {
+      fprintf(stderr, "Failed to initialize main_stack.\n");
+      exit(EXIT_FAILURE);
+    }
+    atexit(kill_main_stack);
+  }
+  if (!IS_STACK_INIT(auxiliary_stack)) {
+    if (!init_data_stack(&auxiliary_stack)) {
       fprintf(stderr, "Failed to initialize auxiliary_stack.\n");
       exit(EXIT_FAILURE);
     }
-    auxiliary_stack.meminfo.first_block = new;
     atexit(kill_auxiliary_stack);
   }
-  if (!metastack.meminfo.first_block) {
-    struct metastack_block *new = malloc(sizeof *new);
-    if (!new) {
+  if (!IS_STACK_INIT(metastack)) {
+    if (!init_metastack(&metastack)) {
       fprintf(stderr, "Failed to initialize metastack.\n");
       exit(EXIT_FAILURE);
     }
-    metastack.meminfo.first_block = new;
     atexit(kill_auxiliary_stack);
   }
 }
 
+void kill_main_stack(void) {
+  if (IS_STACK_INIT(main_stack)) destroy_data_stack(&main_stack);
+}
+
 void kill_auxiliary_stack(void) {
-  if (auxiliary_stack.meminfo.first_block) destroy_data_stack(&auxiliary_stack);
+  if (IS_STACK_INIT(auxiliary_stack)) destroy_data_stack(&auxiliary_stack);
 }
 
 void kill_metastack(void) {
-  if (metastack.meminfo.first_block) destroy_metastack(&metastack);
+  if (IS_STACK_INIT(metastack)) destroy_metastack(&metastack);
 }
 

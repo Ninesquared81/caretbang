@@ -65,9 +65,9 @@ struct delim_stack {
   struct memory_info meminfo;
 };
 
-struct data_stack new_data_stack(void);
-struct metastack new_metastack(void);
-struct delim_stack new_delim_stack(void);
+void *init_data_stack(void);
+void *init_metastack(void);
+void *init_delim_stack(void);
 
 struct data_stack_block *new_data_stack_block(struct data_stack *stack);
 struct metastack_block *new_metastack_block(struct metastack *stack);
