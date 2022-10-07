@@ -7,7 +7,7 @@
 void *init_data_stack(struct data_stack *stack) {
   struct data_stack_block *first_block = malloc(sizeof *first_block);
   stack->top_block = NULL;
-  stack->top_index = NULL;
+  stack->top_index = 0;
   stack->size = 0;
   stack->meminfo.first_block = first_block;
   stack->meminfo.block_count = 1;
@@ -17,7 +17,7 @@ void *init_data_stack(struct data_stack *stack) {
 void *init_metastack(struct metastack *stack) {
   struct metastack_block *first_block = malloc(sizeof *first_block);
   stack->top_block = NULL;
-  stack->top_index = NULL;
+  stack->top_index = 0;
   stack->size = 0;
   stack->meminfo.first_block = first_block;
   stack->meminfo.block_count = 1;  
@@ -27,7 +27,7 @@ void *init_metastack(struct metastack *stack) {
 void *init_delim_stack(struct delim_stack *stack) {
   struct delim_stack_block *first_block = malloc(sizeof *first_block);
   stack->top_block = NULL;
-  stack->top_index = NULL;
+  stack->top_index = 0;
   stack->size = 0;
   stack->meminfo.first_block = first_block;
   stack->meminfo.block_count = 1;  

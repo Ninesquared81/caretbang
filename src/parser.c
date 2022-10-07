@@ -4,18 +4,19 @@
 #include "parser.h"
 #include "sizelims.h"
 #include "stack.h"
-
+#define printf __mingw_printf
+#define fprintf __mingw_fprintf
 size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
   size_t n = 0;
-  struct delim_stack delim_stack = new_delim_stack();
-  if (!IS_STACK_INIT(delim_stack)) {
+  struct delim_stack delim_stack;
+  if (!init_delim_stack(&delim_stack)) {
     fprintf(stderr, "Failed to allocate delim_stack in 'parser.c' in  parse().");
     exit(EXIT_FAILURE);
   }
   for (size_t i = 0; i < length; ++i, ++n) {
     struct token token = tokens[i];
     switch(token.type) {
-    /* simple tokens: */
+      /* simple tokens: */
     case ARROW_LEFT:
     case ARROW_RIGHT:
     case BANG:
@@ -27,14 +28,15 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
     case PERCENT:
     case PLUS:
     case STAR:
-    case WHIRLPOOL:
-      printf("simple");
+    case WHIRLPOOL: {
+      //printf("simple");
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
+      fprintf(stderr,"%p;", (void *)delim_stack.top_block);
       break;
-
-    /* special case */
+    }
+      /* special case */
     case HASH: {
-      printf("hash");
+      //printf("hash");
       struct delim delim = {.type = LOOP_START};
       struct ast_node node = {.token = token};
       if (find_delim_stack(&delim_stack, &delim)) {
@@ -47,14 +49,15 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
       break;
     }
       
-    /* body tokens */
-    case BKT_CURLY_LEFT:
-      printf("{");
+      /* body tokens */
+    case BKT_CURLY_LEFT: {
+      //printf("{");
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
       push_delim_stack(&delim_stack, (struct delim) {.type = STACK_START, .index = n});
       break;
+    }
     case BKT_CURLY_RIGHT: {
-      printf("}");
+      //printf("}");
       struct delim delim;
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != STACK_START) {
 	destroy_delim_stack(&delim_stack);
@@ -66,15 +69,28 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
       break;
     }
     
-    case BKT_SQUARE_LEFT:
-      printf("[");
+    case BKT_SQUARE_LEFT: {
+      //printf("[");
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
-      push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});
+      void *ret = push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});
+      fprintf(stderr,"ret = %p, top_block = %p, first_block = %p, type = %d;",
+	      ret, (void *)delim_stack.top_block, delim_stack.meminfo.first_block,
+	      delim_stack.top_block->delims[0].type);
+      if (!ret) {
+	fprintf(stderr, "Failed to push element to stack.\n");
+	exit(EXIT_FAILURE);
+      }
       break;
+    }
     case BKT_SQUARE_RIGHT: {
-      printf("]");
+      // printf("]");
+      fprintf(stderr,"first_block: %p, top_block: %p, size: %zu, type: %d;",
+	      delim_stack.meminfo.first_block, (void *)delim_stack.top_block, delim_stack.size,0
+	      //delim_stack.top_block->delims[0].type
+	      );
       struct delim delim;
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
+	fprintf(stderr, "type=%d;", delim.type);
 	destroy_delim_stack(&delim_stack);
 	fprintf(stderr, "Unmatched ']' at (%d, %d).\n", token.pos.row, token.pos.col);
 	exit(EXIT_FAILURE);

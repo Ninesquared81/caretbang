@@ -7,7 +7,7 @@
 #include "sizelims.h"
 
 #define IS_STACK_EMPTY(STACK) ((STACK).size == 0)
-#define IS_STACK_INIT(STACK) ((STACK).meminfo.first_block)
+#define IS_STACK_INIT(STACK) (!!(STACK).meminfo.first_block)
 
 struct memory_info {
   void *first_block;
@@ -65,9 +65,9 @@ struct delim_stack {
   struct memory_info meminfo;
 };
 
-void *init_data_stack(void);
-void *init_metastack(void);
-void *init_delim_stack(void);
+void *init_data_stack(struct data_stack *stack);
+void *init_metastack(struct metastack *stack);
+void *init_delim_stack(struct delim_stack *stack);
 
 struct data_stack_block *new_data_stack_block(struct data_stack *stack);
 struct metastack_block *new_metastack_block(struct metastack *stack);

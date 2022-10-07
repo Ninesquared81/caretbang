@@ -110,8 +110,7 @@ void interpret(struct ast_node ast[], size_t length) {
       putchar(pop_data_stack(&main_stack));
       break;
     case HASH:
-      push_metastack(&metastack, main_stack);
-      main_stack = new_main_stack();
+      new_main_stack();
       ast[ast[node.jump_index].jump_index].jump_index = i;
       i = node.jump_index - 1;
       break;

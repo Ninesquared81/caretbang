@@ -69,10 +69,10 @@ void run(void) {
   size_t tokens_length = lex(input_buffer, tokens);
   size_t ast_length = parse(tokens, tokens_length, ast);
   //  interpret(ast, ast_length);
-  for (size_t i = 0; i < tokens_length; ++i) {
+  /* for (size_t i = 0; i < tokens_length; ++i) {
     print_token(tokens[i]);
     printf(" ");
-  } (void)ast_length;
+    } */(void)ast_length;
 }
 
 void parse_cmd(int argc, char **argv, char **filename) {
