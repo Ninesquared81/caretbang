@@ -6,62 +6,69 @@
 #include "stack.h"
 #define printf __mingw_printf
 #define fprintf __mingw_fprintf
-size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
+size_t parse(char *code, size_t length, struct ast_node ast[]) {
   size_t n = 0;
+  char c;
   struct delim_stack delim_stack;
   if (!init_delim_stack(&delim_stack)) {
     fprintf(stderr, "Failed to allocate delim_stack in 'parser.c' in  parse().");
     exit(EXIT_FAILURE);
   }
-  for (size_t i = 0; i < length; ++i, ++n) {
-    struct token token = tokens[i];
-    switch(token.type) {
-      /* simple tokens: */
-    case ARROW_LEFT:
-    case ARROW_RIGHT:
-    case BANG:
-    case CARET:
-    case COLON:
-    case COMMA:
-    case DOT:
-    case MINUS:
-    case PERCENT:
-    case PLUS:
-    case STAR:
-    case WHIRLPOOL: {
-      //printf("simple");
-      ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
-      fprintf(stderr,"%p;", (void *)delim_stack.top_block);
+  while ((c = *code++)) {
+    ast[n].jump_index = n;
+    switch(c) {
+    case '<':
+      ast[n].type = ARROW_LEFT;
       break;
-    }
-      /* special case */
-    case HASH: {
-      //printf("hash");
-      struct delim delim = {.type = LOOP_START};
-      struct ast_node node = {.token = token};
-      if (find_delim_stack(&delim_stack, &delim)) {
-	node.jump_index = delim.index;
-      }
-      else {
-	node.jump_index = 0;
-      }
-      ast[n] = node;
+    case '>':
+      ast[n].type = ARROW_RIGHT;
       break;
-    }
+    case '!':
+      ast[n].type = BANG;
+      break;
+    case '^':
+      ast[n].type = CARET;
+      break;
+    case ':':
+      ast[n].type = COLON;
+      break;
+    case ',':
+      ast[n].type = COMMA;
+      break;
+    case '.':
+      ast[n].type = DOT;
+      break;
+    case '-':
+      ast[n].type = MINUS;
+      break;
+    case '%':
+      ast[n].type = PERCENT;
+      break;
+    case '+':
+      ast[n].type = PLUS;
+      break;
+    case '*':
+      ast[n].type = STAR;
+      break;
+    case '@':
+      ast[n].type = WHIRLPOOL;
+      break;
+    case '#':
+      ast[n].type = HASH;
       
-      /* body tokens */
-    case BKT_CURLY_LEFT: {
-      //printf("{");
-      ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
+      break;
+      
+    case '{': {
+      ast[n].type = BKT_CURLY_LEFT;
       push_delim_stack(&delim_stack, (struct delim) {.type = STACK_START, .index = n});
       break;
     }
-    case BKT_CURLY_RIGHT: {
-      //printf("}");
+    case '}': {
+      ast[n].type = BKT_CURLY_RIGHT;
       struct delim delim;
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != STACK_START) {
 	destroy_delim_stack(&delim_stack);
-	fprintf(stderr, "Unmatched '}' at (%d, %d).\n", token.pos.row, token.pos.col);
+	fprintf(stderr, "Unmatched '}' at %d.\n", n);
 	exit(EXIT_FAILURE);	
       }
       ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
@@ -69,9 +76,8 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
       break;
     }
     
-    case BKT_SQUARE_LEFT: {
-      //printf("[");
-      ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
+    case '[': {
+      ast[n].type = BKT_SQUARE_LEFT;
       void *ret = push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});
       fprintf(stderr,"ret = %p, top_block = %p, first_block = %p, type = %d;",
 	      ret, (void *)delim_stack.top_block, delim_stack.meminfo.first_block,
@@ -82,8 +88,8 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
       }
       break;
     }
-    case BKT_SQUARE_RIGHT: {
-      // printf("]");
+    case ']': {
+      ast[n].type = BKT_SQUARE_RIGHT;
       fprintf(stderr,"first_block: %p, top_block: %p, size: %zu, type: %d;",
 	      delim_stack.meminfo.first_block, (void *)delim_stack.top_block, delim_stack.size,0
 	      //delim_stack.top_block->delims[0].type
@@ -95,20 +101,23 @@ size_t parse(struct token tokens[], size_t length, struct ast_node ast[]) {
 	fprintf(stderr, "Unmatched ']' at (%d, %d).\n", token.pos.row, token.pos.col);
 	exit(EXIT_FAILURE);
       }
-      ast[n] = (struct ast_node) {.token = token, .jump_index = delim.index};
+      ast[n].jump_index = delim.index;
       ast[delim.index].jump_index = n + 1;
       break;
     }
     default:
-      destroy_delim_stack(&delim_stack);
-      fprintf(stderr, "Inexhaustive case analysis in 'parser.c' in parse().");
-      exit(EXIT_FAILURE);
+      /* don't increment n */
+      continue;
     }
+    ++n;
   }
+  
   destroy_delim_stack(&delim_stack);
+  
   if (n >= AST_MAX) {
     fprintf(stderr, "AST_MAX exceeded.\n");
     exit(EXIT_FAILURE);
   }
+  
   return n;
 }

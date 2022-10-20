@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
 #include "sizelims.h"
 #include "stack.h"
 #include "parser.h"
@@ -10,12 +9,10 @@
 
 
 static char *input_buffer = NULL;
-static struct token *tokens = NULL;
 static struct ast_node *ast = NULL;
 
 
 void kill_input_buffer(void);
-void kill_tokens(void);
 void kill_ast(void);
 
 void run(void);
@@ -23,7 +20,7 @@ void parse_cmd(int argc, char **argv, char **filename);
 
 int main(int argc, char **argv) {
   atexit(kill_input_buffer);
-  atexit(kill_tokens);
+  atexit(kill_ast);
   
   char *filename;
   parse_cmd(argc, argv, &filename);
@@ -31,12 +28,6 @@ int main(int argc, char **argv) {
   input_buffer = calloc(TOKENS_MAX, sizeof *input_buffer);
   if (!input_buffer) {
     fprintf(stderr, "Could not allocate input_buffer!\n");
-    return EXIT_FAILURE;
-  }
-  
-  tokens = calloc(TOKENS_MAX, sizeof *tokens);
-  if (!tokens) {
-    fprintf(stderr, "Could not allocate tokens!\n");
     return EXIT_FAILURE;
   }
 
@@ -66,13 +57,8 @@ int main(int argc, char **argv) {
 }
 
 void run(void) {
-  size_t tokens_length = lex(input_buffer, tokens);
   size_t ast_length = parse(tokens, tokens_length, ast);
-  //  interpret(ast, ast_length);
-  /* for (size_t i = 0; i < tokens_length; ++i) {
-    print_token(tokens[i]);
-    printf(" ");
-    } */(void)ast_length;
+  interpret(ast, ast_length);
 }
 
 void parse_cmd(int argc, char **argv, char **filename) {
@@ -106,11 +92,6 @@ void parse_cmd(int argc, char **argv, char **filename) {
 void kill_input_buffer(void) {
   if (input_buffer) free(input_buffer);
   input_buffer = NULL;
-}
-
-void kill_tokens(void) {
-  if (tokens) free(tokens);
-  tokens = NULL;
 }
 
 void kill_ast(void) {
