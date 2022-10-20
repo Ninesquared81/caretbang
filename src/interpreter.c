@@ -22,11 +22,10 @@ void interpret(struct ast_node ast[], size_t length) {
   initialize_stacks();
   for (size_t i = 0; i < length; ++i) {
     struct ast_node node = ast[i];
-    switch (node.token.type) {
+    switch (node.type) {
     case ARROW_LEFT: {
       if (IS_STACK_EMPTY(auxiliary_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }
       uint8_t element = pop_data_stack(&auxiliary_stack);
@@ -35,8 +34,7 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case ARROW_RIGHT: {
       if (IS_STACK_EMPTY(main_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }
       uint8_t element = pop_data_stack(&main_stack);
@@ -45,8 +43,7 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case BANG: {
       if (IS_STACK_EMPTY(main_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }      
       uint8_t element = pop_data_stack(&main_stack);
@@ -65,8 +62,7 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case BKT_SQUARE_LEFT: {
       if (IS_STACK_EMPTY(main_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }      
       uint8_t element = pop_data_stack(&main_stack);
@@ -83,8 +79,7 @@ void interpret(struct ast_node ast[], size_t length) {
       break;
     case COLON: {
       if (IS_STACK_EMPTY(main_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }      
       uint8_t element = pop_data_stack(&main_stack);
@@ -103,8 +98,7 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case DOT:
       if (IS_STACK_EMPTY(main_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }
       putchar(pop_data_stack(&main_stack));
@@ -116,8 +110,7 @@ void interpret(struct ast_node ast[], size_t length) {
       break;
     case MINUS: {
       if (main_stack.size < 2) {
-	fprintf(stderr, "Insufficient space on stack to carry out operation '-' at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Insufficient space on stack to carry out operation '-'.\n");
 	exit(EXIT_FAILURE);
       }
       uint8_t rhs = pop_data_stack(&main_stack);
@@ -127,8 +120,7 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case PERCENT: {
       if (main_stack.size < 2) {
-	fprintf(stderr, "Insufficient space on stack to carry out operation '%%' at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Insufficient space on stack to carry out operation '%%'.\n");
 	exit(EXIT_FAILURE);
       }
       uint8_t top_element = pop_data_stack(&main_stack);
@@ -139,8 +131,7 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case PLUS: {
       if (main_stack.size < 2) {
-	fprintf(stderr, "Insufficient space on stack to carry out operation '+' at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Insufficient space on stack to carry out operation '+'.\n");
 	exit(EXIT_FAILURE);
       }
       uint8_t rhs = pop_data_stack(&main_stack);
@@ -150,16 +141,14 @@ void interpret(struct ast_node ast[], size_t length) {
     }
     case STAR:
       if (IS_STACK_EMPTY(main_stack)) {
-	fprintf(stderr, "Tried to operate on empty stack at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Tried to operate on empty stack.\n");
 	exit(EXIT_FAILURE);
       }
       pop_data_stack(&main_stack);
       break;
     case WHIRLPOOL: {
       if (main_stack.size < 3) {
-	fprintf(stderr, "Insufficient space on stack to carry out operation '@' at (%d, %d).\n",
-		node.token.pos.row, node.token.pos.col);
+	fprintf(stderr, "Insufficient space on stack to carry out operation '@'.\n");
 	exit(EXIT_FAILURE);
       }
       uint8_t top_element = pop_data_stack(&main_stack);

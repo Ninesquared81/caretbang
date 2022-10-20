@@ -2,10 +2,8 @@
 #define SIZELIMS_H
 
 #include <limits.h>
-#include "token.h"
 
-#define TOKENS_MAX UINT_MAX / sizeof(struct token)
-#define AST_MAX TOKENS_MAX
+#define AST_MAX UINT_MAX / 16
 
 #define DATA_STACK_BLOCK_SIZE 1024
 #define METASTACK_BLOCK_SIZE 64

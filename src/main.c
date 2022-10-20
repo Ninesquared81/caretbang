@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   char *filename;
   parse_cmd(argc, argv, &filename);
 
-  input_buffer = calloc(TOKENS_MAX, sizeof *input_buffer);
+  input_buffer = calloc(AST_MAX, sizeof *input_buffer);
   if (!input_buffer) {
     fprintf(stderr, "Could not allocate input_buffer!\n");
     return EXIT_FAILURE;
