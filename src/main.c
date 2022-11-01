@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 }
 
 void run(void) {
-  size_t ast_length = parse(tokens, tokens_length, ast);
+  size_t ast_length = parse(input_buffer, ast);
   interpret(ast, ast_length);
 }
 
@@ -96,5 +96,5 @@ void kill_input_buffer(void) {
 
 void kill_ast(void) {
   if (ast) free(ast);
-  tokens = NULL;
+  ast = NULL;
 }

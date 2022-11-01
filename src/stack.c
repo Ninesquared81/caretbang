@@ -2,7 +2,6 @@
 #include <stdbool.h>
 
 #include "stack.h"
-#define printf __mingw_printf
 
 void *init_data_stack(struct data_stack *stack) {
   struct data_stack_block *first_block = malloc(sizeof *first_block);
@@ -268,10 +267,6 @@ struct data_stack pop_metastack(struct metastack *stack) {
 }
 
 struct delim pop_delim_stack(struct delim_stack *stack) {
-  puts("hi");
-  printf("top_block=%p, top_index=%zu, size=%zu, first_block=%p, block_count=%zu",
-	 (void *)stack->top_block, stack->top_index, stack->size,
-	 (void *)stack->meminfo.first_block, stack->meminfo.block_count);
   struct delim delim = stack->top_block->delims[stack->top_index];
   if (stack->top_index > 0) {
     /* normal case */

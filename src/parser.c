@@ -6,7 +6,7 @@
 #include "stack.h"
 #define printf __mingw_printf
 #define fprintf __mingw_fprintf
-size_t parse(char *code, size_t length, struct ast_node ast[]) {
+size_t parse(char *code, struct ast_node ast[]) {
   size_t n = 0;
   char c;
   struct delim_stack delim_stack;
@@ -68,10 +68,10 @@ size_t parse(char *code, size_t length, struct ast_node ast[]) {
       struct delim delim;
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != STACK_START) {
 	destroy_delim_stack(&delim_stack);
-	fprintf(stderr, "Unmatched '}' at %d.\n", n);
+	fprintf(stderr, "Unmatched '}'.\n");
 	exit(EXIT_FAILURE);	
       }
-      ast[n] = (struct ast_node) {.token = token, .jump_index = n + 1};
+      ast[n].jump_index = n + 1;
       ast[delim.index].jump_index = n;
       break;
     }
@@ -98,7 +98,7 @@ size_t parse(char *code, size_t length, struct ast_node ast[]) {
       if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
 	fprintf(stderr, "type=%d;", delim.type);
 	destroy_delim_stack(&delim_stack);
-	fprintf(stderr, "Unmatched ']' at (%d, %d).\n", token.pos.row, token.pos.col);
+	fprintf(stderr, "Unmatched ']'.\n");
 	exit(EXIT_FAILURE);
       }
       ast[n].jump_index = delim.index;
