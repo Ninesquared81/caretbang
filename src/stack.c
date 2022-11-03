@@ -101,7 +101,7 @@ void *push_data_stack(struct data_stack *stack, uint8_t element) {
     top_block->elements[0] = element;
 
     stack->top_block = top_block;
-    stack->top_index = 1;
+    stack->top_index = 0;
   }
   else if (stack->top_index < DATA_STACK_BLOCK_SIZE - 1) {
     /* normal case */
@@ -135,7 +135,7 @@ void *push_delim_stack(struct delim_stack *stack, struct delim delim) {
     top_block->delims[0] = delim;
 
     stack->top_block = top_block;
-    stack->top_index = 1;
+    stack->top_index = 0;
   }
   else if (stack->top_index < DELIM_STACK_BLOCK_SIZE - 1) {
     stack->top_block->delims[++stack->top_index] = delim;
