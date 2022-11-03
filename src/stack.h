@@ -6,8 +6,9 @@
 
 #include "sizelims.h"
 
-#define IS_STACK_EMPTY(STACK) ((STACK).size == 0)
-#define IS_STACK_INIT(STACK) (!!(STACK).meminfo.first_block)
+#define IS_EMPTY(STACK) ((STACK).size == 0)
+#define IS_INITIALIZED(STACK) (!!(STACK).meminfo.first_block)
+#define IS_MIN_SIZE(STACK, SIZE) ((STACK).size >= SIZE)
 
 struct memory_info {
   void *first_block;
