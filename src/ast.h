@@ -7,8 +7,6 @@ struct ast_node {
     ARROW_LEFT,
     ARROW_RIGHT,
     BANG,
-    BKT_CURLY_LEFT,
-    BKT_CURLY_RIGHT,
     BKT_SQUARE_LEFT,
     BKT_SQUARE_RIGHT,
     CARET,

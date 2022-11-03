@@ -4,8 +4,12 @@
 #include "parser.h"
 #include "sizelims.h"
 #include "stack.h"
-#define printf __mingw_printf
-#define fprintf __mingw_fprintf
+
+#ifdef __mingw_printf
+ #define printf __mingw_printf
+ #define fprintf __mingw_fprintf
+#endif
+
 size_t parse(char *code, struct ast_node ast[]) {
   size_t n = 0;
   char c;
@@ -53,28 +57,6 @@ size_t parse(char *code, struct ast_node ast[]) {
     case '@':
       ast[n].type = WHIRLPOOL;
       break;
-    case '#':
-      ast[n].type = HASH;
-      
-      break;
-      
-    case '{': {
-      ast[n].type = BKT_CURLY_LEFT;
-      push_delim_stack(&delim_stack, (struct delim) {.type = STACK_START, .index = n});
-      break;
-    }
-    case '}': {
-      ast[n].type = BKT_CURLY_RIGHT;
-      struct delim delim;
-      if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != STACK_START) {
-	destroy_delim_stack(&delim_stack);
-	fprintf(stderr, "Unmatched '}'.\n");
-	exit(EXIT_FAILURE);	
-      }
-      ast[n].jump_index = n + 1;
-      ast[delim.index].jump_index = n;
-      break;
-    }
     
     case '[': {
       ast[n].type = BKT_SQUARE_LEFT;
@@ -105,10 +87,12 @@ size_t parse(char *code, struct ast_node ast[]) {
       ast[delim.index].jump_index = n + 1;
       break;
     }
+    
     default:
       /* don't increment n */
       continue;
     }
+    
     ++n;
   }
   
