@@ -3,6 +3,6 @@
 
 #include "ast.h"
 
-size_t parse(char *source, struct ast_node ast[]);
+void parse(struct dynamic_array *source, struct dynamic_array *ast);
 
 #endif

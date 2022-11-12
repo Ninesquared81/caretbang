@@ -5,21 +5,32 @@
 
 #include "interpreter.h"
 #include "stack.h"
+#include "debug.h"
 
 static struct data_stack main_stack = {0};
 static struct data_stack auxiliary_stack = {0};
 
-void kill_main_stack(void);
-void kill_auxiliary_stack(void);
+static void kill_main_stack(void);
+static void kill_auxiliary_stack(void);
 
-void initialize_stacks(void);
+static void initialize_stacks(void);
 
 
-void interpret(struct ast_node ast[], size_t length) {
+void interpret(struct dynamic_array *ast) {
   initialize_stacks();
-  for (size_t i = 0; i < length; ++i) {
+  for (size_t i = 0; i < ast->count; ++i) {
     uint8_t a, b, c;
-    struct ast_node node = ast[i];
+    struct da_result result = ast_get_node(ast, i);
+    switch (result.type) {
+    case OK: break;
+    case INDEX_ERROR:
+      compiler_error("Error: could not access index %zu of ast", i);
+      break;
+    default:
+      compiler_error("Error: unexpected error %s", da_result_type_to_string(result.type));
+      break;
+    }
+    struct ast_node node = *(struct ast_node *)result.value;
     switch (node.type) {
     case ARROW_LEFT:
       if (IS_EMPTY(auxiliary_stack)) {

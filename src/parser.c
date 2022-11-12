@@ -4,66 +4,73 @@
 #include "parser.h"
 #include "sizelims.h"
 #include "stack.h"
+#include "dynamic-array.h"
+#include "debug.h"
 
-#ifdef __mingw_printf
- #define printf __mingw_printf
- #define fprintf __mingw_fprintf
-#endif
 
-size_t parse(char *code, struct ast_node ast[]) {
-  size_t n = 0;
-  char c;
+void parse(struct dynamic_array *source, struct dynamic_array *ast) {
   struct delim_stack delim_stack;
   if (!init_delim_stack(&delim_stack)) {
-    fprintf(stderr, "Failed to allocate delim_stack in 'parser.c' in  parse().");
-    exit(EXIT_FAILURE);
+    exit(memory_error("Failed to allocate delim_stack."));
   }
-  while ((c = *code++)) {
-    ast[n].jump_index = n;
-    switch(c) {
+  for (size_t i = 0; i < source->length; ++i) {
+    size_t n = ast->length;
+    if (n >= ast->size) {
+      switch (grow_ast_list(ast)) {
+      case GROW_SUCCESS: break;
+      case GROW_ALLOC_ERROR:
+	exit(memory_error("Error: failed to reallocate ast."));
+      case GROW_SIZE_ERROR:
+	exit(compiler_limit("Error: requested size of ast too large (max size %zu bytes).",
+			    (size_t)AST_LIST__MAX));
+      }
+    }
+    struct ast_node *nodes = ast->nodes;
+    nodes[n].jump_index = n;
+    switch(source->string[i]) {
     case '<':
-      ast[n].type = ARROW_LEFT;
+      nodes[n].type = ARROW_LEFT;
       break;
     case '>':
-      ast[n].type = ARROW_RIGHT;
+      nodes[n].type = ARROW_RIGHT;
       break;
     case '!':
-      ast[n].type = BANG;
+      nodes[n].type = BANG;
       break;
     case '^':
-      ast[n].type = CARET;
+      nodes[n].type = CARET;
       break;
     case ':':
-      ast[n].type = COLON;
+      nodes[n].type = COLON;
       break;
     case ',':
-      ast[n].type = COMMA;
+      nodes[n].type = COMMA;
       break;
     case '.':
-      ast[n].type = DOT;
+      nodes[n].type = DOT;
       break;
     case '-':
-      ast[n].type = MINUS;
+      nodes[n].type = MINUS;
       break;
     case '%':
-      ast[n].type = PERCENT;
+      nodes[n].type = PERCENT;
       break;
     case '+':
-      ast[n].type = PLUS;
+      nodes[n].type = PLUS;
       break;
     case '*':
-      ast[n].type = STAR;
+      nodes[n].type = STAR;
       break;
     case '@':
-      ast[n].type = WHIRLPOOL;
+      nodes[n].type = WHIRLPOOL;
       break;
     
     case '[': {
-      ast[n].type = BKT_SQUARE_LEFT;
-      void *ret = push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});
+      nodes[n].type = BKT_SQUARE_LEFT;
+      void *ret = push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});/*
       fprintf(stderr,"ret = %p, top_block = %p, first_block = %p, type = %d;",
 	      ret, (void *)delim_stack.top_block, delim_stack.meminfo.first_block,
-	      delim_stack.top_block->delims[0].type);
+	      delim_stack.top_block->delims[0].type);*/
       if (!ret) {
 	fprintf(stderr, "Failed to push element to stack.\n");
 	exit(EXIT_FAILURE);
@@ -71,20 +78,20 @@ size_t parse(char *code, struct ast_node ast[]) {
       break;
     }
     case ']': {
-      ast[n].type = BKT_SQUARE_RIGHT;
+      nodes[n].type = BKT_SQUARE_RIGHT;/*
       fprintf(stderr,"first_block: %p, top_block: %p, size: %zu, type: %d;",
 	      delim_stack.meminfo.first_block, (void *)delim_stack.top_block, delim_stack.size,0
 	      //delim_stack.top_block->delims[0].type
-	      );
+	      );*/
       struct delim delim;
-      if (IS_STACK_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
-	fprintf(stderr, "type=%d;", delim.type);
+      if (IS_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
+	//fprintf(stderr, "type=%d;", delim.type);
 	destroy_delim_stack(&delim_stack);
 	fprintf(stderr, "Unmatched ']'.\n");
 	exit(EXIT_FAILURE);
       }
-      ast[n].jump_index = delim.index;
-      ast[delim.index].jump_index = n + 1;
+      nodes[n].jump_index = delim.index;
+      nodes[delim.index].jump_index = n + 1;
       break;
     }
     
@@ -92,16 +99,8 @@ size_t parse(char *code, struct ast_node ast[]) {
       /* don't increment n */
       continue;
     }
-    
-    ++n;
+    ++ast->length;
   }
   
   destroy_delim_stack(&delim_stack);
-  
-  if (n >= AST_MAX) {
-    fprintf(stderr, "AST_MAX exceeded.\n");
-    exit(EXIT_FAILURE);
-  }
-  
-  return n;
 }
