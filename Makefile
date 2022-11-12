@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -Werror -std=c99
+CFLAGS = -Wall -Wextra -Werror -std=c11
 
 sources = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(sources))
