@@ -2,33 +2,57 @@
 #define AST_H
 
 #include <stdlib.h>
-#include "dynamic-array.h"
 
-#define EMPTY_AST_NODE ((struct ast_node) {.type = CARET, .jump_index = 0})
 
-#define ast_get_node(AST, INDEX) da_get(AST, sizeof(struct ast_node), INDEX)
-#define ast_set_node(AST, NODE, INDEX) da_set(AST, NODE, sizeof NODE, INDEX)
-
+struct ast_list {
+  size_t size;
+  size_t length;
+  struct ast_node *nodes;
+};
 
 struct ast_node {
   enum {
-    ARROW_LEFT,
-    ARROW_RIGHT,
-    BANG,
-    BKT_SQUARE_LEFT,
-    BKT_SQUARE_RIGHT,
-    CARET,
-    COLON,
-    COMMA,
-    DOT,
-    HASH,
+    SIMPLE_NODE,
+    LOOP_NODE,
+  } tag;
+  union {
+    struct ast_simple_node sn;
+    struct ast_loop_node ln;
+  };
+  size_t index_in_source;
+};
+
+struct ast_simple_node {
+  enum {
+    AUX_TO_MAIN,
+    MAIN_TO_AUX,
+    INCREMENT,
+    PUSH_ZERO,
+    INPUT,
+    PRINT,
     MINUS,
-    PERCENT,
     PLUS,
-    STAR,
+    POP,
+    DUPE,
+    SWAP,
     WHIRLPOOL,
   } type;
-  size_t jump_index;
 };
+
+struct ast_loop_node {
+  struct ast_list body;
+};
+
+enum grow_ast_list_ret {
+  GROW_SUCCESS,
+  GROW_ALLOC_ERROR,
+  GROW_SIZE_ERROR,
+};
+
+void *init_ast_list(struct ast_list *ast);
+void destroy_ast_list(struct ast_list *ast);
+
+enum grow_ast_list_ret grow_ast_list(struct ast_list *ast);
+
 
 #endif

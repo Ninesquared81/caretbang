@@ -10,17 +10,7 @@ struct dynamic_array {
   void *elements;
 };
 
-struct ast_list {
-  size_t size;
-  size_t length;
-  struct ast_node *nodes;
-};
 
-enum da_grow_error {
-  GROW_SUCCESS,
-  GROW_ALLOC_ERROR,
-  GROW_SIZE_ERROR,
-}
 
 /*
 enum da_result_type {
@@ -46,14 +36,6 @@ struct da_result da_get(struct dynamic_array *array, size_t element_size, size_t
 
 const char *da_result_type_to_string(enum da_result_type type);
 */
-
-void *init_ast_list(struct ast_list *ast);
-void destroy_ast_list(struct ast_list *ast);
-
-enum da_grow_error grow_ast_list(struct ast_list *ast);
-
-
-
 
 
 #endif

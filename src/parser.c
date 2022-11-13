@@ -8,7 +8,7 @@
 #include "debug.h"
 
 
-void parse(struct dynamic_array *source, struct dynamic_array *ast) {
+void parse(struct input_array *source, struct dynamic_array *ast) {
   struct delim_stack delim_stack;
   if (!init_delim_stack(&delim_stack)) {
     exit(memory_error("Failed to allocate delim_stack."));
@@ -26,47 +26,47 @@ void parse(struct dynamic_array *source, struct dynamic_array *ast) {
       }
     }
     struct ast_node *nodes = ast->nodes;
-    nodes[n].jump_index = n;
+    nodes[n].tag = SIMPLE_NODE;
     switch(source->string[i]) {
     case '<':
-      nodes[n].type = ARROW_LEFT;
+      nodes[n].sn.type = AUX_TO_MAIN;
       break;
     case '>':
-      nodes[n].type = ARROW_RIGHT;
+      nodes[n].sn.type = MAIN_TO_AUX;
       break;
     case '!':
-      nodes[n].type = BANG;
+      nodes[n].sn.type = INCREMENT;
       break;
     case '^':
-      nodes[n].type = CARET;
+      nodes[n].sn.type = PUSH_ZERO;
       break;
     case ':':
-      nodes[n].type = COLON;
+      nodes[n].sn.type = DUPE;
       break;
     case ',':
-      nodes[n].type = COMMA;
+      nodes[n].sn.type = INPUT;
       break;
     case '.':
-      nodes[n].type = DOT;
+      nodes[n].sn.type = PRINT;
       break;
     case '-':
-      nodes[n].type = MINUS;
+      nodes[n].sn.type = MINUS;
       break;
     case '%':
-      nodes[n].type = PERCENT;
+      nodes[n].sn.type = SWAP;
       break;
     case '+':
-      nodes[n].type = PLUS;
+      nodes[n].sn.type = PLUS;
       break;
     case '*':
-      nodes[n].type = STAR;
+      nodes[n].sn.type = POP;
       break;
     case '@':
-      nodes[n].type = WHIRLPOOL;
+      nodes[n].sn.type = WHIRLPOOL;
       break;
     
     case '[': {
-      nodes[n].type = BKT_SQUARE_LEFT;
+      nodes[n].tag = LOOP_NODE;
       void *ret = push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});/*
       fprintf(stderr,"ret = %p, top_block = %p, first_block = %p, type = %d;",
 	      ret, (void *)delim_stack.top_block, delim_stack.meminfo.first_block,
@@ -74,6 +74,10 @@ void parse(struct dynamic_array *source, struct dynamic_array *ast) {
       if (!ret) {
 	fprintf(stderr, "Failed to push element to stack.\n");
 	exit(EXIT_FAILURE);
+      }
+      if (!init_ast_list(&nodes[n].ln.body)) {
+	report_location(source, i);
+	exit(memory_error("Error: failed to allocate loop body.\n"));
       }
       break;
     }
@@ -87,8 +91,8 @@ void parse(struct dynamic_array *source, struct dynamic_array *ast) {
       if (IS_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
 	//fprintf(stderr, "type=%d;", delim.type);
 	destroy_delim_stack(&delim_stack);
-	fprintf(stderr, "Unmatched ']'.\n");
-	exit(EXIT_FAILURE);
+	parse_error("Unmatched ']'.\n");
+     	exit(EXIT_FAILURE);
       }
       nodes[n].jump_index = delim.index;
       nodes[delim.index].jump_index = n + 1;
