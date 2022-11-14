@@ -20,11 +20,6 @@
 | `?` | Push `1` to main stack if it contains elements, or `0` if it is empty |
 | `;` | Push `1` to main stack if auxiliary stack has elements, or `0` if it is empty |
 | `[` _\<loop body>_ `]` | Loop while top of stack is non-zero (pops from stack to check condition) |
-| `{` _\<macro name>_ `}(` _\<macro body>_ `)` | Define macro |
-| `{` _\<macro name>_ `}` | Execute macro |
 
 ### The two stacks
 As previously mentioned, data is stored on two stacks. The elements of these stacks are unisgned 8-bit integers, which can be used both as numbers and ASCII characters. The main stack is where most modifications take place. There is also the auxiliary stack, which can only be pushed to and popped from (the element coming from/going to the main stack). It is useful for holding higher elements of the main stack while lower elements are being used.
-
-### Macros
-A powerful feature of ^! is macros. These allow a sequence of instructions to be given a shorter name (which can be any string not containing the characters `{` or `}`) and be called again later. When a macro is called in the code, the instruction pointer jumps to the body of the macro, and jumps back to where it came from when finished. This means that macros can be recursive, although it is important to note that the state (of the stacks) is inherited by any recursive call.
