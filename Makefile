@@ -4,7 +4,9 @@ CFLAGS = -Wall -Wextra -Werror -std=c11
 
 sources = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(sources))
+
 out = bin/cb
+
 
 all : $(out)
 
