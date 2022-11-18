@@ -1,26 +1,14 @@
 #ifndef AST_H
 #define AST_H
 
-#include <stdlib.h>
+#include <stddef.h>
+
+#include "dynamic_array.h"
 
 
-struct ast_list {
-  size_t size;
-  size_t length;
-  struct ast_node *nodes;
-};
-
-struct ast_node {
-  enum {
-    SIMPLE_NODE,
-    LOOP_NODE,
-  } tag;
-  union {
-    struct ast_simple_node sn;
-    struct ast_loop_node ln;
-  };
-  size_t index_in_source;
-};
+typedef struct ast_list {
+  struct dynamic_array _darray;
+} ast_list;
 
 struct ast_simple_node {
   enum {
@@ -40,19 +28,29 @@ struct ast_simple_node {
 };
 
 struct ast_loop_node {
-  struct ast_list body;
+  ast_list body;
 };
 
-enum grow_ast_list_ret {
-  GROW_SUCCESS,
-  GROW_ALLOC_ERROR,
-  GROW_SIZE_ERROR,
+struct ast_node {
+  enum {
+    SIMPLE_NODE,
+    LOOP_NODE,
+  } tag;
+  union {
+    struct ast_simple_node sn;
+    struct ast_loop_node ln;
+  };
+  size_t index_in_source;
 };
 
-void *init_ast_list(struct ast_list *ast);
-void destroy_ast_list(struct ast_list *ast);
 
-enum grow_ast_list_ret grow_ast_list(struct ast_list *ast);
+void *init_ast_list(ast_list *ast);
+void destroy_ast_list(ast_list *ast);
+
+struct ast_node *get_ast_nodes(ast_list *ast);
+size_t get_ast_size(ast_list *ast);
+
+enum da_grow_rc grow_ast_list(ast_list *ast);
 
 
 #endif
