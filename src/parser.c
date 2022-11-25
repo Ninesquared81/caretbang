@@ -1,110 +1,105 @@
+#include "parser.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "parser.h"
 #include "sizelims.h"
 #include "stack.h"
-#include "dynamic-array.h"
 #include "debug.h"
+#include "dstring.h"
+#include "reporting.h"
 
 
-void parse(struct input_array *source, struct dynamic_array *ast) {
-  struct delim_stack delim_stack;
-  if (!init_delim_stack(&delim_stack)) {
-    exit(memory_error("Failed to allocate delim_stack."));
-  }
-  for (size_t i = 0; i < source->length; ++i) {
-    size_t n = ast->length;
-    if (n >= ast->size) {
-      switch (grow_ast_list(ast)) {
-      case GROW_SUCCESS: break;
-      case GROW_ALLOC_ERROR:
-	exit(memory_error("Error: failed to reallocate ast."));
-      case GROW_SIZE_ERROR:
-	exit(compiler_limit("Error: requested size of ast too large (max size %zu bytes).",
-			    (size_t)AST_LIST__MAX));
-      }
+void parse(const struct dstring *restrict source, struct ast_list *restrict ast) {
+    const char *source_start = get_dstring_chars(source);
+    const char *source_end = source_start + source->length;
+    parse_recursive(source_start, source_end, ast);
+}
+
+
+const char *parse_recursive(const char *restrict source_start, const char *restrict source_end,
+			    struct ast_list *restrict ast) {
+    struct delim_stack delim_stack;
+    if (!init_delim_stack(&delim_stack)) {
+	exit(memory_error("Failed to allocate delim_stack."));
     }
-    struct ast_node *nodes = ast->nodes;
-    nodes[n].tag = SIMPLE_NODE;
-    switch(source->string[i]) {
-    case '<':
-      nodes[n].sn.type = AUX_TO_MAIN;
-      break;
-    case '>':
-      nodes[n].sn.type = MAIN_TO_AUX;
-      break;
-    case '!':
-      nodes[n].sn.type = INCREMENT;
-      break;
-    case '^':
-      nodes[n].sn.type = PUSH_ZERO;
-      break;
-    case ':':
-      nodes[n].sn.type = DUPE;
-      break;
-    case ',':
-      nodes[n].sn.type = INPUT;
-      break;
-    case '.':
-      nodes[n].sn.type = PRINT;
-      break;
-    case '-':
-      nodes[n].sn.type = MINUS;
-      break;
-    case '%':
-      nodes[n].sn.type = SWAP;
-      break;
-    case '+':
-      nodes[n].sn.type = PLUS;
-      break;
-    case '*':
-      nodes[n].sn.type = POP;
-      break;
-    case '@':
-      nodes[n].sn.type = WHIRLPOOL;
-      break;
+    const char *string = source_start;
+    for (; string < source_end; ++string) {
+	size_t n = ast->length;  // length is incremented at end
+	if (n >= ast->darray.size) {
+	    switch (grow_ast_list(ast)) {
+	    case GROW_SUCCESS: break;
+	    case GROW_ALLOC_ERROR:
+		exit(memory_error("Error: failed to reallocate ast."));
+	    case GROW_SIZE_ERROR:
+		exit(compiler_limit("Error: requested size of ast too large (max size %zu bytes).",
+				    AST_LIST_MAX_BYTES));
+	    }
+	}
+	struct ast_node *nodes = get_ast_nodes(ast);
+	struct ast_node *node_p = nodes + n;
+	node_p->tag = SIMPLE_NODE;
+	switch(*string) {
+	case '<':
+	    node_p->sn.type = AUX_TO_MAIN;
+	    break;
+	case '>':
+	    node_p->sn.type = MAIN_TO_AUX;
+	    break;
+	case '!':
+	    node_p->sn.type = INCREMENT;
+	    break;
+	case '^':
+	    node_p->sn.type = PUSH_ZERO;
+	    break;
+	case ':':
+	    node_p->sn.type = DUPE;
+	    break;
+	case ',':
+	    node_p->sn.type = INPUT;
+	    break;
+	case '.':
+	    node_p->sn.type = PRINT;
+	    break;
+	case '-':
+	    node_p->sn.type = MINUS;
+	    break;
+	case '%':
+	    node_p->sn.type = SWAP;
+	    break;
+	case '+':
+	    node_p->sn.type = PLUS;
+	    break;
+	case '*':
+	    node_p->sn.type = POP;
+	    break;
+	case '@':
+	    node_p->sn.type = DISCOVER;
+	    break;
     
-    case '[': {
-      nodes[n].tag = LOOP_NODE;
-      void *ret = push_delim_stack(&delim_stack, (struct delim) {.type = LOOP_START, .index = n});/*
-      fprintf(stderr,"ret = %p, top_block = %p, first_block = %p, type = %d;",
-	      ret, (void *)delim_stack.top_block, delim_stack.meminfo.first_block,
-	      delim_stack.top_block->delims[0].type);*/
-      if (!ret) {
-	fprintf(stderr, "Failed to push element to stack.\n");
-	exit(EXIT_FAILURE);
-      }
-      if (!init_ast_list(&nodes[n].ln.body)) {
-	report_location(source, i);
-	exit(memory_error("Error: failed to allocate loop body.\n"));
-      }
-      break;
-    }
-    case ']': {
-      nodes[n].type = BKT_SQUARE_RIGHT;/*
-      fprintf(stderr,"first_block: %p, top_block: %p, size: %zu, type: %d;",
-	      delim_stack.meminfo.first_block, (void *)delim_stack.top_block, delim_stack.size,0
-	      //delim_stack.top_block->delims[0].type
-	      );*/
-      struct delim delim;
-      if (IS_EMPTY(delim_stack) || (delim = pop_delim_stack(&delim_stack)).type != LOOP_START) {
-	//fprintf(stderr, "type=%d;", delim.type);
-	destroy_delim_stack(&delim_stack);
-	parse_error("Unmatched ']'.\n");
-     	exit(EXIT_FAILURE);
-      }
-      nodes[n].jump_index = delim.index;
-      nodes[delim.index].jump_index = n + 1;
-      break;
-    }
+	case '[':
+	    node_p->tag = LOOP_NODE;
+	    string = parse_recursive(string, source_end, &node_p->ln.body);
+	    if (string == source_end) {
+		// The loop was never closed.
+		exit(parse_error(node_p, "Unmatched ']'. Unexpected EOF.\n"));
+	    }
+	    if (*string != ']') {
+		// Some other character closed the loop.
+		exit(parse_error(node_p, "Unmatched '['. Expected ']' but got '%c'.\n", *string));
+	    }
+	    break;
+	case ']':
+	    return string;
     
-    default:
-      /* don't increment n */
-      continue;
+	default:
+	    // don't increment n
+	    continue;
+	}
+	++ast->length;
+	++node_p;
     }
-    ++ast->length;
-  }
   
-  destroy_delim_stack(&delim_stack);
+    destroy_delim_stack(&delim_stack);
+    return string;
 }

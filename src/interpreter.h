@@ -3,6 +3,7 @@
 
 #include "ast.h"
 
-void interpret(struct dynamic_array *ast);
+void interpret(struct ast_list *ast);
+void dump_stacks(void);
 
 #endif

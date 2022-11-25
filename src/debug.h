@@ -1,9 +1,16 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#define compiler_error(MSG, ...) compiler_error_function(__FILE__, __func__, __LINE__, MSG, __VA_ARGS__)
-#define memory_error(MSG, ...)     memory_error_function(__FILE__, __func__, __LINE__, MSG, __VA_ARGS__)
-#define compiler_limit(MSG, ...) compiler_limit_function(__FILE__, __func__, __LINE__, MSG, __VA_ARGS__)
+#include <stdarg.h>
+
+#define compiler_error(/*MSG,*/ ...) \
+    compiler_error_function(__FILE__, __func__, __LINE__, /*MSG,*/ __VA_ARGS__)
+
+#define memory_error(/*MSG,*/ ...) \
+    memory_error_function(__FILE__, __func__, __LINE__, /*MSG,*/ __VA_ARGS__)
+
+#define compiler_limit(/*MSG,*/ ...) \
+    compiler_limit_function(__FILE__, __func__, __LINE__, /*MSG,*/ __VA_ARGS__)
 
 
 /* full function versions */

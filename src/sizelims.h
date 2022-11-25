@@ -1,14 +1,19 @@
 #ifndef SIZELIMS_H
 #define SIZELIMS_H
 
-#include <limits.h>
-#include <stdint.h>
+#include <limits.h>  // SIZE_MAX
+#include <stddef.h>  // size_t
 
-#define AST_MAX UINT_MAX / 16
-#define DYN_ARRAY_MAX_SIZE SIZE_MAX
-#define DYN_ARRAY_INITIAL_SIZE 4096
 
-#define DATA_STACK_BLOCK_SIZE 2048
-#define DELIM_STACK_BLOCK_SIZE 64
+#define AST_LIST_MAX_BYTES (size_t)SIZE_MAX
+#define AST_LIST_INITIAL_SIZE (size_t)64
+
+#define DSTRING_MAX_BYTES (size_t)SIZE_MAX
+#define DSTRING_INITIAL_SIZE (size_t)1024
+
+#define DATA_STACK_BLOCK_SIZE (size_t)2048
+#define DELIM_STACK_BLOCK_SIZE (size_t)64
+
+#define NODE_NAME_MAX (size_t)32
 
 #endif

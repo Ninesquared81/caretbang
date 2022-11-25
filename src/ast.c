@@ -1,24 +1,41 @@
 #include "ast.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "dynamic_array.h"
 #include "sizelims.h"
+#include "debug.h"
 
 
-void *init_ast_list(ast_list *ast) {
-  return init_dynamic_array(&ast->_darray, AST_LIST_INITIAL_SIZE);
+int ast_human_readable_name(const struct ast_node *node, char buf[NODE_NAME_MAX]) {
+    switch (node->tag) {
+    case SIMPLE_NODE:
+	return snprintf(buf, NODE_NAME_MAX, "%c", +node->sn.type);
+    case LOOP_NODE:
+	return snprintf(buf, NODE_NAME_MAX, "[ ... ]");
+    default:
+	exit(compiler_error("Inexhaustive handling of node->tag.\n"));
+    }
 }
 
-void destroy_ast_list(ast_list *ast) {
-  destroy_dynamic_array(&ast->_darray);
+void *init_ast_list(struct ast_list *ast) {
+    return init_dynamic_array(&ast->darray, AST_LIST_INITIAL_SIZE);
 }
 
-struct ast_node *get_nodes(ast_list *ast) {
-  return ast->_darray.elements;
+void destroy_ast_list(struct ast_list *ast) {
+    destroy_dynamic_array(&ast->darray);
 }
 
-size_t get_ast_size(ast_list *ast) {
-  return ast->_darray.size;
+enum da_grow_rc grow_ast_list(struct ast_list *ast) {
+    return grow_dynamic_array(&ast->darray, AST_LIST_MAX_BYTES);
 }
 
-enum da_grow_rc grow_ast_list(ast_list *ast) {
-  return grow_dynamic_array(&ast->_darray, AST_LIST_MAX);
+struct ast_node *get_ast_nodes(struct ast_list *ast) {
+    return ast->darray.elements;
 }
+
+size_t get_ast_size(struct ast_list *ast) {
+    return ast->darray.size;
+}
+
