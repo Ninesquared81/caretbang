@@ -8,23 +8,25 @@
 #include "debug.h"
 #include "dstring.h"
 #include "reporting.h"
+#include "pos.h"
 
 
-void parse(const struct dstring *restrict source, struct ast_list *restrict ast) {
+void parse(const struct dstring *source, struct ast_list *ast) {
     const char *source_start = get_dstring_chars(source);
     const char *source_end = source_start + source->length;
-    parse_recursive(source_start, source_end, ast);
+    struct pos pos = {0, 0};
+    parse_recursive(source_start, source_end, ast, &pos);
 }
 
 
-const char *parse_recursive(const char *restrict source_start, const char *restrict source_end,
-			    struct ast_list *restrict ast) {
+const char *parse_recursive(const char *source_start, const char *source_end,
+			    struct ast_list *ast, struct pos *pos) {
     /* struct delim_stack delim_stack;
     if (!init_delim_stack(&delim_stack)) {
 	exit(memory_error("Failed to allocate delim_stack."));
 	} (void)source_end; (void)ast;//*/
     const char *string = source_start;//*
-    for (unsigned row = 0, col = 0; string < source_end; ++string) {
+    for (; string < source_end; ++string) {
 	if (ast->length >= get_ast_size_logical(ast)) {
 	    switch (grow_ast_list(ast)) {
 	    case GROW_SUCCESS: break;
@@ -39,8 +41,8 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	}
 	struct ast_node *nodes = get_ast_nodes(ast);
 	struct ast_node *node_p = nodes + ast->length;
-	node_p->row = row;
-	node_p->col = col++;
+	node_p->pos = *pos;
+	++pos->col;
 	node_p->tag = SIMPLE_NODE;
 	switch(*string) {
 	case '<':
@@ -85,7 +87,8 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	    if (!init_ast_list(&node_p->ln.body)) {
 		exit(memory_error("Failed to initialize loop body.\n"));
 	    }
-	    string = parse_recursive(string + 1, source_end, &node_p->ln.body);
+	    ++pos->col;
+	    string = parse_recursive(string + 1, source_end, &node_p->ln.body, pos);
 	    if (string == source_end) {
 		// The loop was never closed.
 		exit(parse_error(node_p, "Unmatched '['. Unexpected EOF.\n"));
@@ -99,8 +102,8 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	    return string;
     
 	case '\n':
-	    ++row;
-	    col = 0;
+	    ++pos->row;
+	    pos->col = 0;
 	    // fallthorugh
 	default:
 	    // don't increment n

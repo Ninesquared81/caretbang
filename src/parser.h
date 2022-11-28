@@ -3,11 +3,12 @@
 
 #include "ast.h"
 #include "dstring.h"
+#include "pos.h"
 
 
-void parse(const struct dstring *restrict source, struct ast_list *restrict ast);
-const char *parse_recursive(const char *restrict source, const char *restrict end,
-			    struct ast_list *restrict ast);
+void parse(const struct dstring *source, struct ast_list *ast);
+const char *parse_recursive(const char *source, const char *end,
+			    struct ast_list *ast, struct pos *pos);
 
 
 #endif
