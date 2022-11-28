@@ -119,35 +119,35 @@ void interpret_simple_node(struct ast_node *node) {
     case POP:
 	if (IS_EMPTY(main_stack)) {
 	    exit(empty_stack_error(node));
-}
-pop_data_stack(&main_stack);
-break;
-case SWAP:
-if (!IS_MIN_SIZE(main_stack, 2)) {
-fprintf(stderr, "Insufficient space on stack to carry out operation '%%'.\n");
-exit(EXIT_FAILURE);
-}
-a = pop_data_stack(&main_stack);
-b = pop_data_stack(&main_stack);
-push_data_stack(&main_stack, a);
-push_data_stack(&main_stack, b);
-break;
-case DISCOVER:
-if (!IS_MIN_SIZE(main_stack, 3)) {
-fprintf(stderr, "Insufficient space on stack to carry out operation '@'.\n");
-exit(EXIT_FAILURE);
-}
-a = pop_data_stack(&main_stack);
-b = pop_data_stack(&main_stack);
-c = pop_data_stack(&main_stack);
-push_data_stack(&main_stack, b);
-push_data_stack(&main_stack, a);
-push_data_stack(&main_stack, c);
-break;
+	}
+	pop_data_stack(&main_stack);
+	break;
+    case SWAP:
+	if (!IS_MIN_SIZE(main_stack, 2)) {
+	    fprintf(stderr, "Insufficient space on stack to carry out operation '%%'.\n");
+	    exit(EXIT_FAILURE);
+	}
+	a = pop_data_stack(&main_stack);
+	b = pop_data_stack(&main_stack);
+	push_data_stack(&main_stack, a);
+	push_data_stack(&main_stack, b);
+	break;
+    case DISCOVER:
+	if (!IS_MIN_SIZE(main_stack, 3)) {
+	    fprintf(stderr, "Insufficient space on stack to carry out operation '@'.\n");
+	    exit(EXIT_FAILURE);
+	}
+	a = pop_data_stack(&main_stack);
+	b = pop_data_stack(&main_stack);
+	c = pop_data_stack(&main_stack);
+	push_data_stack(&main_stack, b);
+	push_data_stack(&main_stack, a);
+	push_data_stack(&main_stack, c);
+	break;
 
-default:
-exit(compiler_error("Inexhaustive case analysis of node->sn.type."));
-}
+    default:
+	exit(compiler_error("Inexhaustive case analysis of node->sn.type."));
+    }
 }
   
 void interpret_loop_node(struct ast_node *node) {
