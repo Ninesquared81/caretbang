@@ -24,7 +24,7 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	exit(memory_error("Failed to allocate delim_stack."));
 	} (void)source_end; (void)ast;//*/
     const char *string = source_start;//*
-    for (; string < source_end; ++string) {
+    for (unsigned row = 0, col = 0; string < source_end; ++string) {
 	if (ast->length >= get_ast_size_logical(ast)) {
 	    switch (grow_ast_list(ast)) {
 	    case GROW_SUCCESS: break;
@@ -33,10 +33,14 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	    case GROW_SIZE_ERROR:
 		exit(compiler_limit("Error: requested size of ast too large (max size %zu bytes).",
 				    AST_LIST_MAX_BYTES));
+	    default:
+		exit(compiler_error("Inexhausive handling of grow_ast_list(ast).\n"));
 	    }
 	}
 	struct ast_node *nodes = get_ast_nodes(ast);
 	struct ast_node *node_p = nodes + ast->length;
+	node_p->row = row;
+	node_p->col = col++;
 	node_p->tag = SIMPLE_NODE;
 	switch(*string) {
 	case '<':
@@ -91,6 +95,10 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	case ']':
 	    return string;
     
+	case '\n':
+	    ++row;
+	    col = 0;
+	    // fallthorugh
 	default:
 	    // don't increment n
 	    continue;
