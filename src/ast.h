@@ -5,6 +5,7 @@
 
 #include "dynamic_array.h"
 #include "sizelims.h"
+#include "pos.h"
 
 
 struct ast_list {
@@ -42,10 +43,7 @@ struct ast_node {
 	struct ast_simple_node sn;
 	struct ast_loop_node ln;
     };
-    struct {
-	size_t row;
-	size_t col;
-    };
+    struct pos pos;
 };
 
 int ast_human_readable_name(const struct ast_node *node, char buf[NODE_NAME_MAX]);
