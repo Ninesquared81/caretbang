@@ -19,14 +19,13 @@ void parse(const struct dstring *restrict source, struct ast_list *restrict ast)
 
 const char *parse_recursive(const char *restrict source_start, const char *restrict source_end,
 			    struct ast_list *restrict ast) {
-    struct delim_stack delim_stack;
+    /* struct delim_stack delim_stack;
     if (!init_delim_stack(&delim_stack)) {
 	exit(memory_error("Failed to allocate delim_stack."));
-    }
-    const char *string = source_start;
+	} (void)source_end; (void)ast;//*/
+    const char *string = source_start;//*
     for (; string < source_end; ++string) {
-	size_t n = ast->length;  // length is incremented at end
-	if (n >= ast->darray.size) {
+	if (ast->length >= get_ast_size_logical(ast)) {
 	    switch (grow_ast_list(ast)) {
 	    case GROW_SUCCESS: break;
 	    case GROW_ALLOC_ERROR:
@@ -37,7 +36,7 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	    }
 	}
 	struct ast_node *nodes = get_ast_nodes(ast);
-	struct ast_node *node_p = nodes + n;
+	struct ast_node *node_p = nodes + ast->length;
 	node_p->tag = SIMPLE_NODE;
 	switch(*string) {
 	case '<':
@@ -82,7 +81,7 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	    string = parse_recursive(string, source_end, &node_p->ln.body);
 	    if (string == source_end) {
 		// The loop was never closed.
-		exit(parse_error(node_p, "Unmatched ']'. Unexpected EOF.\n"));
+		exit(parse_error(node_p, "Unmatched '['. Unexpected EOF.\n"));
 	    }
 	    if (*string != ']') {
 		// Some other character closed the loop.
@@ -97,9 +96,8 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
 	    continue;
 	}
 	++ast->length;
-	++node_p;
-    }
+    }//*/
   
-    destroy_delim_stack(&delim_stack);
+    // destroy_delim_stack(&delim_stack);
     return string;
 }

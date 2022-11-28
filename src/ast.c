@@ -35,7 +35,10 @@ struct ast_node *get_ast_nodes(struct ast_list *ast) {
     return ast->darray.elements;
 }
 
-size_t get_ast_size(struct ast_list *ast) {
+size_t get_ast_size_bytes(struct ast_list *ast) {
     return ast->darray.size;
 }
 
+size_t get_ast_size_logical(struct ast_list *ast) {
+    return ast->darray.size / sizeof(struct ast_node);
+}
