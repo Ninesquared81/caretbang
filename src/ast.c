@@ -20,6 +20,7 @@ int ast_human_readable_name(const struct ast_node *node, char buf[NODE_NAME_MAX]
 }
 
 void *init_ast_list(struct ast_list *ast) {
+    ast->length = 0;
     return init_dynamic_array(&ast->darray, AST_LIST_INITIAL_SIZE);
 }
 

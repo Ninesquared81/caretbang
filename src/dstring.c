@@ -3,6 +3,7 @@
 
 
 void *init_dstring(struct dstring *dstring) {
+    dstring->length = 0;
     return init_dynamic_array(&dstring->darray, DSTRING_INITIAL_SIZE);
 }
 

@@ -82,7 +82,10 @@ const char *parse_recursive(const char *restrict source_start, const char *restr
     
 	case '[':
 	    node_p->tag = LOOP_NODE;
-	    string = parse_recursive(string, source_end, &node_p->ln.body);
+	    if (!init_ast_list(&node_p->ln.body)) {
+		exit(memory_error("Failed to initialize loop body.\n"));
+	    }
+	    string = parse_recursive(string + 1, source_end, &node_p->ln.body);
 	    if (string == source_end) {
 		// The loop was never closed.
 		exit(parse_error(node_p, "Unmatched '['. Unexpected EOF.\n"));
