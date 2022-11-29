@@ -169,6 +169,11 @@ uint8_t pop_data_stack(struct data_stack *stack) {
 	/* normal case */
 	--stack->top_index;
     }
+    else if (stack->size == 1) {
+	/* pop from first block  */
+	stack->top_index = 0;
+	stack->top_block = NULL;
+    }
     else {
 	/* change block */
 	stack->top_index = DATA_STACK_BLOCK_SIZE - 1;
@@ -179,14 +184,15 @@ uint8_t pop_data_stack(struct data_stack *stack) {
 }
 
 struct delim pop_delim_stack(struct delim_stack *stack) {
-    /*puts("hi");
-      printf("top_block=%p, top_index=%zu, size=%zu, first_block=%p, block_count=%zu",
-      (void *)stack->top_block, stack->top_index, stack->size,
-      (void *)stack->meminfo.first_block, stack->meminfo.block_count);*/
     struct delim delim = stack->top_block->delims[stack->top_index];
     if (stack->top_index > 0) {
 	/* normal case */
 	--stack->top_index;
+    }
+    else if (stack->size == 1) {
+	/* pop from first block  */
+	stack->top_index = 0;
+	stack->top_block = NULL;
     }
     else {
 	/* change block */
