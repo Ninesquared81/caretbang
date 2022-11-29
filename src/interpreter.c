@@ -42,9 +42,10 @@ void interpret_recursive(struct ast_list *ast) {
 	case LOOP_NODE:
 	    interpret_loop_node(node);
 	    break;
-	case COMMENT_NODE:
-	    // no-op
-	    break;
+	case ERROR_NODE:
+	    exit(compiler_error(
+		     "Unexpected ERROR_NODE (%d:%d:'%c') in interpretation step.\n",
+		     node->pos.row, node->pos.col, node->en.symbol));
 	default:
 	    exit(compiler_error("Inexhaustive case analysis of node tags."));
 	}
@@ -153,7 +154,13 @@ void interpret_simple_node(struct ast_node *node) {
     case AUX_NON_EMPTY:
 	push_data_stack(&main_stack, !IS_EMPTY(auxiliary_stack));
 	break;
-
+    case EXIT_PROGRAM:
+	if (IS_EMPTY(main_stack)) {
+	    exit(empty_stack_error(node));
+	}
+	// exit with a user-specified exit status
+	a = pop_data_stack(&main_stack);
+	exit(a);
     default:
 	exit(compiler_error("Inexhaustive case analysis of node->sn.type."));
     }

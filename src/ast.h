@@ -29,6 +29,7 @@ struct ast_simple_node {
 	DISCOVER	= '@',
 	MAIN_NON_EMPTY  = '?',
 	AUX_NON_EMPTY   = ';',
+	EXIT_PROGRAM    = '$',
     } type;
 };
 
