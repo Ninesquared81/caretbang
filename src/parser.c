@@ -21,10 +21,6 @@ void parse(const struct dstring *source, struct ast_list *ast) {
 
 const char *parse_recursive(const char *source_start, const char *source_end,
 			    struct ast_list *ast, struct pos *pos) {
-    /* struct delim_stack delim_stack;
-    if (!init_delim_stack(&delim_stack)) {
-	exit(memory_error("Failed to allocate delim_stack."));
-	} (void)source_end; (void)ast;//*/
     const char *string = source_start;//*
     for (; string < source_end; ++string) {
 	if (ast->length >= get_ast_size_logical(ast)) {
@@ -106,7 +102,29 @@ const char *parse_recursive(const char *source_start, const char *source_end,
 	    break;
 	case ']':
 	    return string;
-    
+
+	case '(':
+	    ++pos->col;
+	    string = parse_comment(string + 1, source_end, pos);
+	    // Set the node up as an error in case the comment isn't closed properly.
+	    // It will be reset to the proper type on the next iteration.
+	    node_p->tag = ERROR_NODE;
+	    node_p->en.symbol = '(';
+	    if (string == source_end) {
+		// The comment was never closed.
+		exit(parse_error(node_p, "Unmatched '('. Unexpected EOF.\n"));
+	    }
+	    if (*string != ')') {
+		// Some other character closed the comment.
+		exit(parse_error(node_p, "Unmatched '('. Expected ')' but got '%c'.\n", *string));
+	    }
+	    // don't increment n
+	    continue;
+	case ')':
+	    // This is only seen if there is no matching '('.
+	    node_p->tag = ERROR_NODE;
+	    node_p->en.symbol = ')';
+	    exit(parse_error(node_p, "Unmatched ')'.\n"));
 	case '\n':
 	    ++pos->row;
 	    pos->col = 0;
@@ -116,8 +134,23 @@ const char *parse_recursive(const char *source_start, const char *source_end,
 	    continue;
 	}
 	++ast->length;
-    }//*/
-  
-    // destroy_delim_stack(&delim_stack);
+    }
+
+    return string;
+}
+
+const char *parse_comment(const char *source_start, const char *source_end, struct pos *pos) {
+    const char *string = source_start;
+    for (; string < source_end && *string != ')'; ++string) {
+	++pos->col;
+	if (*string == '(') {
+	    ++pos->col;
+	    string = parse_comment(string + 1, source_end, pos);
+	}
+	else if (*string == '\n') {
+	    ++pos->row;
+	    pos->col = 0;
+	}
+    }
     return string;
 }

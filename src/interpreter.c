@@ -42,6 +42,9 @@ void interpret_recursive(struct ast_list *ast) {
 	case LOOP_NODE:
 	    interpret_loop_node(node);
 	    break;
+	case COMMENT_NODE:
+	    // no-op
+	    break;
 	default:
 	    exit(compiler_error("Inexhaustive case analysis of node tags."));
 	}

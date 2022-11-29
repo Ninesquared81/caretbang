@@ -1,0 +1,12 @@
+(This is a code comment.
+ It can contain any reserved characters, like '*' or '['
+ without invoking the corresponding commands.)
+
+You can comment out code with them
+(like so:
+^!:[+:]
+(!!!!) (-- you can even nest them!!)
+)
+
+^!!!!:+:+::++.	print '0' if all is good
+^!!!!!:+.	print a final newline too

@@ -1,4 +1,4 @@
-^!!!!:+:+::++:+!>	a == 97 (stored on aux)
+^!!!!:+:+::++:+!>	push 'a' == 97 (stored on aux)
 
 ^!!!!::++!:[^^@^!-:]*   push 26 items to the stack
 

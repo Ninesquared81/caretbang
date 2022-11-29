@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #include "ast.h"
+#include "debug.h"
 
 
 int report_location(const struct ast_node *node) {
@@ -15,9 +16,21 @@ int report_location(const struct ast_node *node) {
 int parse_error(const struct ast_node *node, const char *restrict message, ...) {
     fprintf(stderr, "[Parse Error] ");
     report_location(node);
-    char node_name[NODE_NAME_MAX];
-    ast_human_readable_name(node, node_name);
-    fprintf(stderr, "(at '%s'): ", node_name);
+    char node_c;
+    switch (node->tag) {
+    case SIMPLE_NODE:
+	node_c = +node->sn.type;
+	break;
+    case LOOP_NODE:
+	node_c = '[';
+	break;
+    case ERROR_NODE:
+	node_c = node->en.symbol;
+	break;
+    default:
+	exit(compiler_error("Inexhaustive case analysis of node->tag.\n"));
+    }
+    fprintf(stderr, "(at '%c'): ", node_c);
     
     va_list args;
     va_start(args, message);

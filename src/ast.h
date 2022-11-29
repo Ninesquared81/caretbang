@@ -36,14 +36,20 @@ struct ast_loop_node {
     struct ast_list body;
 };
 
+struct ast_error_node {
+    char symbol;
+};
+
 struct ast_node {
     enum {
 	SIMPLE_NODE,
 	LOOP_NODE,
+	ERROR_NODE,
     } tag;
     union {
 	struct ast_simple_node sn;
 	struct ast_loop_node ln;
+	struct ast_error_node en;
     };
     struct pos pos;
 };
