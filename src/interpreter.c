@@ -144,6 +144,12 @@ void interpret_simple_node(struct ast_node *node) {
 	push_data_stack(&main_stack, a);
 	push_data_stack(&main_stack, c);
 	break;
+    case MAIN_NON_EMPTY:
+	push_data_stack(&main_stack, !IS_EMPTY(main_stack));
+	break;
+    case AUX_NON_EMPTY:
+	push_data_stack(&main_stack, !IS_EMPTY(auxiliary_stack));
+	break;
 
     default:
 	exit(compiler_error("Inexhaustive case analysis of node->sn.type."));
@@ -151,13 +157,18 @@ void interpret_simple_node(struct ast_node *node) {
 }
   
 void interpret_loop_node(struct ast_node *node) {
-    uint8_t top;
-    while (!IS_EMPTY(main_stack) && (top = pop_data_stack(&main_stack))) {
-	interpret_recursive(&node->ln.body);
-    }
+    // Check before first loop iteration.
     if (IS_EMPTY(main_stack)) {
 	exit(empty_stack_error(node));
-    }    
+    }
+    while (pop_data_stack(&main_stack)) {
+	interpret_recursive(&node->ln.body);
+
+	// This check cannot be easily factored into the loop condition.
+	if (IS_EMPTY(main_stack)) {
+	    exit(empty_stack_error(node));
+	}
+    }
 }
 
 void initialize_stacks(void) {

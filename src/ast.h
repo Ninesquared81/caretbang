@@ -27,6 +27,8 @@ struct ast_simple_node {
 	POP		= '*',
 	SWAP		= '%',
 	DISCOVER	= '@',
+	MAIN_NON_EMPTY  = '?',
+	AUX_NON_EMPTY   = ';',
     } type;
 };
 

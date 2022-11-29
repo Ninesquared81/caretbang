@@ -81,7 +81,13 @@ const char *parse_recursive(const char *source_start, const char *source_end,
 	case '@':
 	    node_p->sn.type = DISCOVER;
 	    break;
-    
+	case '?':
+	    node_p->sn.type = MAIN_NON_EMPTY;
+	    break;
+	case ';':
+	    node_p->sn.type = AUX_NON_EMPTY;
+	    break;
+
 	case '[':
 	    node_p->tag = LOOP_NODE;
 	    if (!init_ast_list(&node_p->ln.body)) {
