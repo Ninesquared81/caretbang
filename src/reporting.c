@@ -4,9 +4,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "ast.h"
+
 
 int report_location(const struct ast_node *node) {
-    fprintf(stderr, "%zu:%zu: ", node->row, node->col);
+    fprintf(stderr, "%d:%d: ", node->pos.row, node->pos.col);
     return EXIT_FAILURE;
 }
 
