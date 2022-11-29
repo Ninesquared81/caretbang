@@ -1,14 +1,19 @@
 #ifndef SIZELIMS_H
 #define SIZELIMS_H
 
-#include <limits.h>
-#include "token.h"
+#include <limits.h>  // INT_MAX
+#include <stddef.h>  // size_t
 
-#define TOKENS_MAX UINT_MAX / sizeof(struct token)
-#define AST_MAX TOKENS_MAX
 
-#define DATA_STACK_BLOCK_SIZE 1024
-#define METASTACK_BLOCK_SIZE 64
-#define DELIM_STACK_BLOCK_SIZE METASTACK_BLOCK_SIZE
+#define AST_LIST_MAX_BYTES (size_t)INT_MAX
+#define AST_LIST_INITIAL_SIZE (size_t)256u
+
+#define DSTRING_MAX_BYTES (size_t)INT_MAX
+#define DSTRING_INITIAL_SIZE (size_t)1024u
+
+#define DATA_STACK_BLOCK_SIZE (size_t)2048u
+#define DELIM_STACK_BLOCK_SIZE (size_t)64u
+
+#define NODE_NAME_MAX (size_t)16u
 
 #endif

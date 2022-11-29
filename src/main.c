@@ -1,119 +1,116 @@
+#define __USE_MINGW_ANSI_STDIO 1
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
 #include "sizelims.h"
 #include "stack.h"
 #include "parser.h"
 #include "interpreter.h"
+#include "debug.h"
+#include "dstring.h"
+#include "command_line.h"
 
 
-static char *input_buffer = NULL;
-static struct token *tokens = NULL;
-static struct ast_node *ast = NULL;
+/* Global Resources */
+
+static struct dstring input = {0};
+static struct ast_list ast = {0};
 
 
-void kill_input_buffer(void);
-void kill_tokens(void);
-void kill_ast(void);
+/* Function Prototypes */
 
-void run(void);
-void parse_cmd(int argc, char **argv, char **filename);
+static void init_input(void);
+static void init_ast(void);
+
+static void kill_input(void);
+static void kill_ast(void);
+
+static void run(void);
+
+
+/* Main Function */
 
 int main(int argc, char **argv) {
-  atexit(kill_input_buffer);
-  atexit(kill_tokens);
+    init_input();
+    init_ast();
   
-  char *filename;
-  parse_cmd(argc, argv, &filename);
-
-  input_buffer = calloc(TOKENS_MAX, sizeof *input_buffer);
-  if (!input_buffer) {
-    fprintf(stderr, "Could not allocate input_buffer!\n");
-    return EXIT_FAILURE;
-  }
-  
-  tokens = calloc(TOKENS_MAX, sizeof *tokens);
-  if (!tokens) {
-    fprintf(stderr, "Could not allocate tokens!\n");
-    return EXIT_FAILURE;
-  }
-
-  ast = calloc(AST_MAX, sizeof *ast);
-  if (!ast) {
-    fprintf(stderr, "Could not allocate ast!\n");
-    return EXIT_FAILURE;
-  }
-  
-  if (filename) {
+    char *filename = NULL;  // should be initialized in next function
+    parse_cmd(argc, argv, &filename);
+    if (!filename) {
+	exit(compiler_error("parse_cmd() failed to initialize 'filename'.\n"));
+    }
+    
     FILE *fp = fopen(filename, "r");
     if (!fp) {
-      fprintf(stderr, "Could not open file '%s'.\n", filename);
-      return EXIT_FAILURE;
+	fprintf(stderr, "Could not open file '%s'.\n", filename);
+	if (ferror(fp)) {
+	    perror("Error");
+	}
+	return EXIT_FAILURE;
     }
-    fread(input_buffer, sizeof *input_buffer, sizeof input_buffer - sizeof *input_buffer, fp);
+    
+    for (
+	char *buffer_pointer = input.darray.elements;
+	(input.length = fread(buffer_pointer, sizeof(char),
+			      input.darray.size, fp)) == input.darray.size;
+	buffer_pointer += input.length) {
+	if (ferror(fp)) {
+	    fprintf(stderr, "An error occurred reading file '%s'.\n", filename);
+	    perror("Error");
+	    return EXIT_FAILURE;
+	}
+	switch (grow_dstring(&input)) {
+	case GROW_SUCCESS: break;
+	case GROW_SIZE_ERROR:
+	    exit(compiler_limit("Input too large (maximum input length is %zu bytes).", DSTRING_MAX_BYTES));
+	case GROW_ALLOC_ERROR:
+	    exit(memory_error("Could not reallocate input array."));
+	default:
+	    exit(compiler_error("Inexhaustive case analysis for `enum da_grow_rc`.\n"));
+	}
+    }
     fclose(fp);
     run();
-  }
-  else {
-    while (fgets(input_buffer, sizeof input_buffer, stdin)) {
-      run();
+    
+    return EXIT_SUCCESS;
+}
+
+
+/* Global Resource Management */
+
+void init_input(void) {
+    if (atexit(kill_input) != 0) {
+	exit(compiler_error("Failed to register kill_input() with atexit().\n"));
     }
-  }
-
-  return EXIT_SUCCESS;
-}
-
-void run(void) {
-  size_t tokens_length = lex(input_buffer, tokens);
-  size_t ast_length = parse(tokens, tokens_length, ast);
-  //  interpret(ast, ast_length);
-  /* for (size_t i = 0; i < tokens_length; ++i) {
-    print_token(tokens[i]);
-    printf(" ");
-    } */(void)ast_length;
-}
-
-void parse_cmd(int argc, char **argv, char **filename) {
-  const char *usage = "Usage: %s [filename]\n";
-  const char *help_msg = "\nPositional arguments:\n"
-                         "filename -- (optional) name of source code file to interpret;\n"
-                         "            if omitted, enter interactive mode.\n"
-                         "Options:\n"
-                         "-h, --help -- show this help message.\n\n";
-  *filename = NULL;
-  if (argc > 1) {
-    for (int i = 1; i < argc; ++i) {
-      char *argument = argv[i];
-      if (strcmp(argument, "--") == 0) break;
-      if (strcmp(argument, "-h") == 0 || strcmp(argument, "--help") == 0) {
-	printf(usage, argv[0]);
-	printf(help_msg);
-	exit(EXIT_FAILURE);
-      }
-      else if (argument[0] == '-') {
-	printf("Unrecognised argument %s\n", argument);
-	printf(usage, argv[0]);
-	printf("For help type '%s -h'.", argv[0]);
-	exit(EXIT_FAILURE);
-      }
+    if (!init_dstring(&input)) {
+	exit(memory_error("Failed to initialize input.\n"));
     }
-    *filename = argv[1];
-  }  
 }
 
-void kill_input_buffer(void) {
-  if (input_buffer) free(input_buffer);
-  input_buffer = NULL;
+void init_ast(void) {
+    if (atexit(kill_ast) != 0) {
+	exit(compiler_error("Failed to register kill_ast() with atexit().\n"));
+    }
+    if (!init_ast_list(&ast)) {
+	exit(memory_error("Failed to initialize ast.\n"));
+    }
 }
 
-void kill_tokens(void) {
-  if (tokens) free(tokens);
-  tokens = NULL;
+void kill_input(void) {
+    destroy_dstring(&input);
 }
 
 void kill_ast(void) {
-  if (ast) free(ast);
-  tokens = NULL;
+    destroy_ast_list(&ast);
 }
+
+
+/* Helper Functions */
+
+void run(void) {
+    parse(&input, &ast);
+    interpret(&ast);
+}
+

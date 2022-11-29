@@ -1,9 +1,14 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "token.h"
 #include "ast.h"
+#include "dstring.h"
+#include "pos.h"
 
-size_t parse(struct token tokens[], size_t length, struct ast_node ast[]);
+
+void parse(const struct dstring *source, struct ast_list *ast);
+const char *parse_recursive(const char *source, const char *end,
+			    struct ast_list *ast, struct pos *pos);
+
 
 #endif

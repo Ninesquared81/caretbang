@@ -1,0 +1,11 @@
+^!!!!:+:+::++:+!>	a == 97 (stored on aux)
+
+^!!!!::++!:[^^@^!-:]*   push 26 items to the stack
+
+?[      	    	while there are items on the stack
+    *       	    	pop the top item
+    <:.    	    	print the character stored on aux
+    !>		    	increment it and store it back
+?]      	    	end while
+
+^!!!!!:+.	    	print final newline

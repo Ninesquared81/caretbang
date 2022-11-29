@@ -1,10 +1,12 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -Werror -std=c99
+CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c11 -D__USE_MINGW_ANSI_STDIO=1
 
 sources = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(sources))
+
 out = bin/cb
+
 
 all : $(out)
 

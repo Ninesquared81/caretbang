@@ -3,6 +3,7 @@
 
 #include "ast.h"
 
-void interpret(struct ast_node ast[], size_t length);
+void interpret(struct ast_list *ast);
+void dump_stacks(void);
 
 #endif
