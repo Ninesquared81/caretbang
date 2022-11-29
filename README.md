@@ -19,6 +19,7 @@
 | `<` | Move element from top of auxiliary stack to top of main stack |
 | `?` | Push `1` to main stack if it contains elements, or `0` if it is empty |
 | `;` | Push `1` to main stack if auxiliary stack has elements, or `0` if it is empty |
+| `$` | Exit the program with the specified exit status (popped from top of stack) |
 | `[` _\<loop body>_ `]` | Loop while top of stack is non-zero (pops from stack to check condition) |
 | `(` _\<comment text>_ `)` | Ignore everything enclosed (may be nested) |
 
