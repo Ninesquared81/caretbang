@@ -20,6 +20,7 @@
 | `?` | Push `1` to main stack if it contains elements, or `0` if it is empty |
 | `;` | Push `1` to main stack if auxiliary stack has elements, or `0` if it is empty |
 | `[` _\<loop body>_ `]` | Loop while top of stack is non-zero (pops from stack to check condition) |
+| `(` _\<comment text>_ `)` | Ignore everything enclosed (may be nested) |
 
 ### The two stacks
 As previously mentioned, data is stored on two stacks. The elements of these stacks are unisgned 8-bit integers, which can be used both as numbers and ASCII characters. The main stack is where most modifications take place. There is also the auxiliary stack, which can only be pushed to and popped from (the element coming from/going to the main stack). It is useful for holding higher elements of the main stack while lower elements are being used.
