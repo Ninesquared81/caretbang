@@ -1,5 +1,5 @@
-^!!:[:>:+:]<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+. (minimized version)
-(
+(^!!:[:>:+:]<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+. (minimized version))
+
 (loop to get powers of 2 on aux)
 main and aux are both empty
 
@@ -69,4 +69,3 @@ aux is  2 8 32
 (final stack state)
 main is 0 128       doesn't matter that there's data left
 aux is empty
-)
