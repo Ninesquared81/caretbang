@@ -1,0 +1,12 @@
+(A program which prints '0' once if user inputs a '0', or '1' indefinitely if they input a '1'
+(other cases are undefined))
+
+,:              get user input and duplicate it
+^!!!!:+:+::++   push 48 ('0') to main
+-               (input - 48 (result is 1 or 0))
+
+[               if non zero (i.e. if user input '1')
+    :.              print (a copy of) the user's input (i.e. '1')
+^!]             continue to loop infinitely by pushing 1 as the condition
+
+.               print the user's input (i.e. '0' -- this is unreachable from the infinite loop)
