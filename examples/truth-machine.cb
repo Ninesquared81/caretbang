@@ -1,5 +1,5 @@
-A program which prints '0' once if user inputs a '0' or '1' indefinitely if the input a '1'
-(other cases are undefined)
+(A program which prints '0' once if user inputs a '0', or '1' indefinitely if they input a '1'
+(other cases are undefined))
 
 ,:              get user input and duplicate it
 ^!!!!:+:+::++   push 48 ('0') to main
