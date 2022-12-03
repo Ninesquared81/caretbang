@@ -44,31 +44,36 @@ int main(int argc, char **argv) {
     
     FILE *fp = fopen(filename, "r");
     if (!fp) {
-	fprintf(stderr, "Could not open file '%s'.\n", filename);
-	if (ferror(fp)) {
-	    perror("Error");
-	}
+	fprintf(stderr, "Could not open file '%s'", filename);
+	perror("");
 	return EXIT_FAILURE;
     }
     
-    for (
-	char *buffer_pointer = input.darray.elements;
-	(input.length = fread(buffer_pointer, sizeof(char),
-			      input.darray.size, fp)) == input.darray.size;
-	buffer_pointer += input.length) {
+    while (!feof(fp)) {
+	char *input_pointer = get_dstring_chars(&input) + input.length;
 	if (ferror(fp)) {
-	    fprintf(stderr, "An error occurred reading file '%s'.\n", filename);
-	    perror("Error");
-	    return EXIT_FAILURE;
+	    fprintf(stderr, "An error occurred reading '%s'", filename);
+	    perror("");
+	    exit(EXIT_FAILURE);
 	}
-	switch (grow_dstring(&input)) {
-	case GROW_SUCCESS: break;
-	case GROW_SIZE_ERROR:
-	    exit(compiler_limit("Input too large (maximum input length is %zu bytes).", DSTRING_MAX_BYTES));
-	case GROW_ALLOC_ERROR:
-	    exit(memory_error("Could not reallocate input array."));
-	default:
-	    exit(compiler_error("Inexhaustive case analysis for `enum da_grow_rc`.\n"));
+	size_t current_size = get_dstring_size(&input);
+	size_t max_read_size = current_size - input.length;
+	input.length += fread(input_pointer, sizeof(char), max_read_size, fp);
+	if (input.length == current_size) {
+	    enum da_grow_rc rc = grow_dstring(&input);
+	    if (rc == GROW_SUCCESS) continue;  // all good
+
+	    // In the case of an error:
+	    fclose(fp);
+	    switch (rc) {
+	    case GROW_SIZE_ERROR:
+		exit(compiler_limit("Input too large (maximum input length is %zu bytes).",
+				    DSTRING_MAX_BYTES));
+	    case GROW_ALLOC_ERROR:
+		exit(memory_error("Could not reallocate input array."));
+	    default:
+		exit(compiler_error("Inexhaustive case analysis for 'rc'.\n"));
+	    }
 	}
     }
     fclose(fp);
