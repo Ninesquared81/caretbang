@@ -1,0 +1,6 @@
+,       get initial input from user
+:[      while not EOF
+    .       print current character
+    ,       get next character
+:]      end while
+*       discard elements on stack
