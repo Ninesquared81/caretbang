@@ -1,0 +1,72 @@
+^!!:[:>:+:]<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+. (minimized version)
+(
+(loop to get powers of 2 on aux)
+main and aux are both empty
+
+^!!     start with 2
+:[      while non zero
+    :>      copy to aux
+    :+      double (if top was 128, we'd get 256, but because cells are only 8 bits, this wraps around to 0)
+:]      end while
+<       we immediately bring back 128 and leave it at the bottom of the stack (unused)
+
+
+(print "H")
+main is 0 128
+aux is  2 4 8 16 32 64
+
+<:      get 64 from aux and duplicate it
+<<@     get 32 and 16 and grab the duplicated 64
+<::>    grab 8 duplicate it twice then place it back on aux
+@+.     grab 64 again then add it to 8 to get 72 which is the ASCII code for 'H'
+
+(print "e")
+main is 0 128 64 32 16 8
+aux is  2 4 8
+
+%>      put 16 back on aux
+%:>     copy 32 back to aux
+@:>     copy 64 back to aux
++!!!!   add 64 and 32 to get 96 and increment to get 100
+:!.     duplicate increment and print 'e'
+
+(print "llo")
+main is 0 128 8 100
+aux is  2 4 8 16 32 64
+
+:@+     duplicate 100 then grab 8 and add to 100
+:::     duplicate three times (to get 4 copies -- two for now, one to increment, and one for later)
+..      print twice ("ll")
+!!!     increment three times to get 111 ('o')
+:.      duplicate for later then print the result
+
+(print ", W")
+main is 0 128 100 108 111
+aux is  2 4 8 16 32 64
+
+<<:<<@  get 64 32 16 8 from aux and bring a copy of 32 to the top of main
+:@:@+   duplicate 32 and 8 then add them
+<:@+    get 4 from aux then add a copy to the 40 previously calculated
+.       print 44 (',')
+%>%.    put 4 back on aux then print 32 (' ')
++       add 4 and 16
+%>      put 32 back on aux
++!!!.   add 20 to 64 then increment three times to print 87 ('W')
+
+(print "orld")
+:.      duplicate 111 then print ('o')
+!!!.    increment three times then print ('r')
+.       print 108 from before ('l')
+.       print 100 from before ('d')
+
+(print "!\n")
+main is 0 128
+aux is  2 8 32
+
+<!.     get 32 from aux then increment and print ('!')
+<<+.    get 8 2 from aux then add and print ('\n')
+
+(final stack state)
+main is 0 128       doesn't matter that there's data left
+aux is empty
+)
