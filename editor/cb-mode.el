@@ -10,7 +10,7 @@
   "Syntax table for cb-mode")
 
 (defconst cb-instructions
-  '("^" "!" "+" "-" "," "." "[" "]" ":" "*" "%" "@")
+  '("^" "!" "+" "-" "," "." "[" "]" ":" "*" "%" "@" ">" "<" "?" ";" "$")
   "^! reserved instruction characters")
 
 (defconst cb-highlighting
