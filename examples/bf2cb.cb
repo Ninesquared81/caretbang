@@ -1,3 +1,30 @@
+( This is a brainfuck to ^! transpiler written in ^!.
+|
+| Each brainfuck instruction has a corresponding sequence of ^! instructions
+| which are printed to stdout.
+|
+| The translation schema is described below:
+|
+|          brainfuck    |     ^!
+|      -----------------+-------------
+|    [start of program] |     ^
+|              >        | >?^!-[^^]
+|              <        |     <
+|              +        |     !
+|              -        |    ^!-
+|              .        |     :.
+|              ,        |     *,
+|              [        |    :[
+|              ]        |    :]  
+|
+| ^!'s main and aux stacks are used as the 'tape', with the '>' and '<' neatly corrresponding
+| to their brainfuck counterparts. The extra cludge after '>' is to ensure the main stack always
+| has at least one element on it (that's also why an initial '^' is emitted).
+|
+| NOTE: The transpiler is currently unfinished
+)
+
+
 ^!!!!
 
 ,:      read and duplicate first character
