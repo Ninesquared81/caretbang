@@ -27,5 +27,5 @@
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.cb\\'" . cb-mode))
 
-;(provide 'cb-mode)
+(provide 'cb-mode)
 ;;; cb-mode.el ends here
