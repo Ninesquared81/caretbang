@@ -97,7 +97,7 @@ code          main              aux
     ( Since the top of aux stores (^), we use a trick to skip past it.
     |
     | We start the loop counter at 8, but immediatley increment it inside
-    | the loop to get the 9th element on aux (>).
+    | the loop to get the 9th element on aux (]).
     | At the end of the loop, we decrement by 2 instead of 1 to counterract this
     | initial increment.
     |
