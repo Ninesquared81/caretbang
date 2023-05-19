@@ -21,13 +21,104 @@
 | to their brainfuck counterparts. The extra cludge after '>' is to ensure the main stack always
 | has at least one element on it (that's also why an initial '^' is emitted).
 |
+|
+| This diagram represent how brainfuck's memory cells are modelled in ^!:
+|
+|       -4  -3  -2  -1   0   1   2   3   4
+|  . . . [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] . . .
+|        [ aux stack | ] [ |  main stack   ]
+|                        ^
+|                        |
+|                   current cell /
+|                    top of main
+|
 | NOTE: The transpiler is currently unfinished
 )
 
 
-^!!!!
+
+(push ('^' '>' '<' '+' '-' '.' ',' '[' ']' '!' ':' '*' '?') to aux in reverse order)
+
+( char | ascii | code to get from aux
+| -----+-------+----------------------
+|   ?  |  63   | ^!!!!::++!::[^!-<@@:]*%:@:[@>^!-:]*
+|   *  |  42   | ^!!!!::++::[^!-<@@:]*%:@:[@>^!-:]*
+|   :  |  58   | <<<<<<<<<<<:>%>%>%>%>%>%>%>%>%>%>
+|   !  |  33   | <<<<<<<<<<:>%>%>%>%>%>%>%>%>%>
+|   ]  |  93   | <<<<<<<<<:>%>%>%>%>%>%>%>%>
+|   [  |  91   | <<<<<<<<:>%>%>%>%>%>%>%>
+|   ,  |  44   | <<<<<<<:>%>%>%>%>%>%>
+|   .  |  46   | <<<<<<:>%>%>%>%>%>
+|   -  |  45   | <<<<<:>%>%>%>%>
+|   +  |  43   | <<<<:>%>%>%>
+|   <  |  60   | <<<:>%>%>
+|   >  |  62   | <<:>%>
+|   ^  |  94   | <:>
+)
+
+code          main              aux
+^!!!!:+:+     16
+::+           16 32
+::+           16 32 64
+:^!->         16 32 64          63
+@@            64 16 32
+:@            64 32 32 16
++:            64 32 48 48
+^!!!:+        64 32 48 48 6
+->            64 32 48          42 63
+:^!!!!!:+     64 32 48 48 10
++>            64 32 48          58 42 63
+%:!           64 48 32 33
+>%            64 32 48          33 58 42 63
+::+           64 32 48 96
+^!!!!!-       64 32 48 91
+:!!           64 32 48 91 93
+>>            64 32 48          91 93 33 58 42 93
+^!!!!!-       64 32 43
+:!:>          64 32 43 44       44 91 93 33 58 42 63
+!!:!          64 32 43 45 46
+>>>           64 32             43 45 46 44 91 93 33 58 42 63
+%             32 64
+^!!!!         32 64 4
+-:>           32 60             60 43 45 46 44 91 93 33 58 42 63
+!!:>          32 62             62 60 43 45 46 44 91 93 33 58 42 63
++>                              94 62 60 43 45 46 44 91 93 33 58 42 63
+
+
+(Print initial (^))
+
+<:>.    see table above for how to get ascii codes from aux
+
+(Start translation loop)
 
 ,:      read and duplicate first character
 [
+
+    (Get brainfuck instructions onto main stack starting from (>))
+
+    ( Since the top of aux stores (^), we use a trick to skip past it.
+    |
+    | We start the loop counter at 8, but immediatley increment it inside
+    | the loop to get the 9th element on aux (>).
+    | At the end of the loop, we decrement by 2 instead of 1 to counterract this
+    | initial increment.
+    |
+    | In this way, we skip getting (^) entirely, since the loop exits after 8 iteration.
+    )
+
+    ^!!!!:+   there are 8 brainfuck instructions
+    :[
+        !             increment to skip past (^) which is at the top of aux
+        ::            make some copies of the loop counter
+        :[<@@ ^!-:]*  move n items from aux to main
+        %:            copy nth item from aux
+        @:[@> ^!-:]*  move all the items back to aux (except for the copy we made, which stays on main)
+
+        % ^!!-        decrement loop counter by 2 to compare against 0
+    :]*
+
+
+
+(<<:>%<<:>%>%<<<:>%>%>%<<<<:>%>%>%>%<<<<<:>%>%>%>%>%<<<<<<:>%>%>%>%>%>%<<<<<<<:>%>%>%>%>%>%>%<<<<<<<<:>%>%>%>%>%>%>%>%<<<<<<<<<:>%>%>%>%>%>%>%>%>%<<<<<<<<<<:>%>%>%>%>%>%>%>%>%>%>)
 
 ,:]     read next character
