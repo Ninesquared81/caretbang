@@ -15,14 +15,14 @@
 |              .        |     :.
 |              ,        |     *,
 |              [        |    :[
-|              ]        |    :]  
+|              ]        |    :]
 |
 | ^!'s main and aux stacks are used as the 'tape', with the '>' and '<' neatly corrresponding
 | to their brainfuck counterparts. The extra cludge after '>' is to ensure the main stack always
 | has at least one element on it (that's also why an initial '^' is emitted).
 |
 |
-| This diagram represent how brainfuck's memory cells are modelled in ^!:
+| This diagram represents how brainfuck's memory cells are modelled in ^!:
 |
 |       -4  -3  -2  -1   0   1   2   3   4
 |  . . . [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] . . .
@@ -76,7 +76,7 @@ code          main              aux
 >>            64 32 48          91 93 33 58 42 93
 ^!!!!!-       64 32 43
 :!:>          64 32 43 44       44 91 93 33 58 42 63
-!!:!          64 32 43 45 46
+!:!           64 32 43 45 46
 >>>           64 32             43 45 46 44 91 93 33 58 42 63
 %             32 64
 ^!!!!         32 64 4
@@ -91,8 +91,7 @@ code          main              aux
 
 (Start translation loop)
 
-,:      read and duplicate first character
-[
+^![
 
     (Get brainfuck instructions onto main stack starting from (>))
 
@@ -103,7 +102,7 @@ code          main              aux
     | At the end of the loop, we decrement by 2 instead of 1 to counterract this
     | initial increment.
     |
-    | In this way, we skip getting (^) entirely, since the loop exits after 8 iteration.
+    | In this way, we skip getting (^) entirely, since the loop exits after 8 iterations.
     )
 
     ^!!!!:+   there are 8 brainfuck instructions
@@ -118,7 +117,83 @@ code          main              aux
     :]*
 
 
+    (Parse input)
 
-(<<:>%<<:>%>%<<<:>%>%>%<<<<:>%>%>%>%<<<<<:>%>%>%>%>%<<<<<<:>%>%>%>%>%>%<<<<<<<:>%>%>%>%>%>%>%<<<<<<<<:>%>%>%>%>%>%>%>%<<<<<<<<<:>%>%>%>%>%>%>%>%>%<<<<<<<<<<:>%>%>%>%>%>%>%>%>%>%>)
+    ,  read character from stdin
+    
+    :[^^!-^]![^$]  exit on eof
 
-,:]     read next character
+
+    (Compare to (>))
+    :@-
+    :[^^!-^]![^
+        ( >?^!-[^^] )
+        <<:>%>.                               print (>)
+        ^!!!!::++!::[^!-<@@:]*%:@:[@>^!-:]*.  print (?)
+        <:>.                                  print (^)
+        <<<<<<<<<<:>%>%>%>%>%>%>%>%>%>.       print (!)
+        <<<<<:>%>%>%>%>.                      print (-)
+        <<<<<<<<:>%>%>%>%>%>%>%>.             print ([)
+        <::>..                                print (^^)
+        <<<<<<<<<:>%>%>%>%>%>%>%>%>.          print (])
+    ^]*
+
+    (Compare to (<))
+    :@-
+    :[^^!-^]![^
+        ( < )
+        <<<:>%>%>. print (<)
+    ^]*
+
+    (Compare to (+))
+    :@-
+    :[^^!-^]![^
+        ( ! )
+        <<<<<<<<<<:>%>%>%>%>%>%>%>%>%>. print (!)
+    ^]*
+
+    (Compare to (-))
+    :@-
+    :[^^!-^]![^
+        ( ^!- )
+        <:>.                            print (^)
+        <<<<<<<<<<:>%>%>%>%>%>%>%>%>%>. print (!)
+        <<<<<:>%>%>%>%>.                print (-)
+    ^]*
+
+    (Compare to (.))
+    :@-
+    :[^^!-^]![^
+        ( :. )
+        <<<<<<<<<<<:>%>%>%>%>%>%>%>%>%>%>. print (:)
+        <<<<<<:>%>%>%>%>%>.                print (.)
+    ^]*
+
+    (Compare to (,))
+    :@-
+    :[^^!-^]![^
+        ( *, )
+        ^!!!!::++::[^!-<@@:]*%:@:[@>^!-:]*. print (*)
+        <<<<<<<:>%>%>%>%>%>%>.              print (,)
+    ^]*
+
+    (Compare to ([))
+    :@-
+    :[^^!-^]![^
+        ( :[ )
+        <<<<<<<<<<<:>%>%>%>%>%>%>%>%>%>%>. print (:)
+        <<<<<<<<:>%>%>%>%>%>%>%>.          print ([)
+    ^]*
+
+    (Compare to (]))
+    :@-
+    :[^^!-^]![^
+        ( :] )
+        <<<<<<<<<<<:>%>%>%>%>%>%>%>%>%>%>. print (:)
+        <<<<<<<<<:>%>%>%>%>%>%>%>%>.       print (])
+    ^]*
+
+    (Otherwise character is ignored)
+
+    *  drop the prevoius character
+^!]
