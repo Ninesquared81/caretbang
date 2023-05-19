@@ -98,7 +98,7 @@ code          main              aux
     |
     | We start the loop counter at 8, but immediatley increment it inside
     | the loop to get the 9th element on aux (]).
-    | At the end of the loop, we decrement by 2 instead of 1 to counterract this
+    | At the end of the loop, we decrement by 2 instead of 1 to counteract this
     | initial increment.
     |
     | In this way, we skip getting (^) entirely, since the loop exits after 8 iterations.
