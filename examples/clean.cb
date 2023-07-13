@@ -1,0 +1,11 @@
+( This program 'cleans' ^! files by removing all comments and non-instruction characters.
+|
+| The general approach is to read characters from stdin and compare them against the
+| list of ^! instructions, printing those that match. The complication comes from block
+| comments, which must be balanced and ignored.
+|   For these, the auxiliary stack is used, since comments have LIFO behaviour. Every '('
+| encountered pushes a dummy value (0) to aux, and ')' pops a value from aux. Then, if aux
+| is non-empty, the instructions are checked. Otherwise, nothing is printed.
+)
+
+
