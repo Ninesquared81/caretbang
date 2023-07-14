@@ -39,9 +39,10 @@ void interpret_recursive(struct ast_list *ast) {
     struct ast_node *end_node = start_node + ast->length;
     for (struct ast_node *node = start_node; node < end_node; ++node) {
         if (g_should_print_stacks) {
-            fprintf(stderr, "Main: ");
+            fprintf(stderr, "'%c': Main: ",
+                    (node->tag == SIMPLE_NODE) ? node->sn.type : '[');
             print_stack(&main_stack, stderr);
-            fprintf(stderr, "\nAux: ");
+            fprintf(stderr, "  Aux: ");
             print_stack(&auxiliary_stack, stderr);
             fprintf(stderr, "\n");
         }
