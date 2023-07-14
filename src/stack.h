@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "sizelims.h"
 
@@ -68,5 +69,7 @@ uint8_t pop_data_stack(struct data_stack *stack);
 struct delim pop_delim_stack(struct delim_stack *stack);
 
 bool find_delim_stack(struct delim_stack *stack, struct delim *delim);
+
+void print_stack(struct data_stack *stack, FILE *f);
 
 #endif

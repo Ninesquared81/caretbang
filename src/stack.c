@@ -216,3 +216,24 @@ bool find_delim_stack(struct delim_stack *stack, struct delim *delim) {
     }
     return false;
 }
+
+static void print_block(struct data_stack_block *block, size_t count, FILE *f) {
+    for (size_t i = 0; i < count; ++i) {
+        fprintf(f, "%02x ", block->elements[i]);
+    }
+}
+
+void print_stack(struct data_stack *stack, FILE *f) {
+    if (stack->top_block == NULL) {
+        fprintf(f, "[  ]");
+        return;
+    }
+    fprintf(f, "[ ");
+    for (struct data_stack_block *b = stack->meminfo.first_block;
+         b != stack->top_block;
+         b = b->next) {
+        print_block(b, DATA_STACK_BLOCK_SIZE, f);
+    }
+    print_block(stack->top_block, stack->top_index + 1, f);
+    fprintf(f, "]");
+}

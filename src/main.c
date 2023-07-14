@@ -27,7 +27,7 @@ static void init_ast(void);
 static void kill_input(void);
 static void kill_ast(void);
 
-static void run(void);
+static void run(bool should_print_stacks);
 
 
 /* Main Function */
@@ -37,7 +37,8 @@ int main(int argc, char **argv) {
     init_ast();
   
     char *filename = NULL;  // should be initialized in next function
-    parse_cmd(argc, argv, &filename);
+    bool should_print_stacks = false;
+    parse_cmd(argc, argv, &filename, &should_print_stacks);
     if (!filename) {
 	exit(compiler_error("parse_cmd() failed to initialize 'filename'.\n"));
     }
@@ -77,7 +78,7 @@ int main(int argc, char **argv) {
 	}
     }
     fclose(fp);
-    run();
+    run(should_print_stacks);
     
     return EXIT_SUCCESS;
 }
@@ -114,8 +115,8 @@ void kill_ast(void) {
 
 /* Helper Functions */
 
-void run(void) {
+void run(bool should_print_stacks) {
     parse(&input, &ast);
-    interpret(&ast);
+    interpret(&ast, should_print_stacks);
 }
 

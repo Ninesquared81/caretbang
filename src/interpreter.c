@@ -14,6 +14,8 @@
 static struct data_stack main_stack = {0};
 static struct data_stack auxiliary_stack = {0};
 
+static bool g_should_print_stacks = false;
+
 
 static void kill_main_stack(void);
 static void kill_auxiliary_stack(void);
@@ -25,7 +27,8 @@ static void interpret_simple_node(struct ast_node *node);
 static void interpret_loop_node(struct ast_node *node);
 
 
-void interpret(struct ast_list *ast) {
+void interpret(struct ast_list *ast, bool should_print_stacks) {
+    g_should_print_stacks = should_print_stacks;
     initialize_stacks();
     interpret_recursive(ast);
 }
@@ -35,6 +38,13 @@ void interpret_recursive(struct ast_list *ast) {
     struct ast_node *start_node = ast->darray.elements;
     struct ast_node *end_node = start_node + ast->length;
     for (struct ast_node *node = start_node; node < end_node; ++node) {
+        if (g_should_print_stacks) {
+            fprintf(stderr, "Main: ");
+            print_stack(&main_stack, stderr);
+            fprintf(stderr, "\nAux: ");
+            print_stack(&auxiliary_stack, stderr);
+            fprintf(stderr, "\n");
+        }
 	switch (node->tag) {
 	case SIMPLE_NODE:
 	    interpret_simple_node(node);
