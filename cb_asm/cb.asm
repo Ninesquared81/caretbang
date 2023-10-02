@@ -3,97 +3,94 @@ include 'win64ax.inc'
 
 section '.code' code readable executable
   start:
-        lea      rdi, [loops]  ; Loop stack base pointer.
-        mov      rsi, rdi      ; Loop stack pointer.
+        ;int3
+        lea      rsi, [loops]  ; Loop stack base pointer.
+        lea      rdi, [aux]    ; Auxiliary stack pointer.
         lea      r14, [source] ; ^! instruction pointer.
   main_loop:
         ;; get character
-        mov      cl, [r14]
+        mov      bl, [r14]
         inc      r14
-        test     cl, cl
+        test     bl, bl
         jz       main_loop_end
   cb_caret:
-        cmp      cl, '^'
+        cmp      bl, '^'
         jne      cb_bang
         push     word 0
         jmp      main_loop
   cb_bang:
-        cmp      cl, '!'
+        cmp      bl, '!'
         jne      cb_pop
         inc      byte [rsp]
         jmp      main_loop
   cb_pop:
-        cmp     cl, '*'
+        cmp     bl, '*'
         jne     cb_dupe
         pop     ax             ; Dummy register.
         jmp     main_loop
   cb_dupe:
-        cmp     cl, ':'
+        cmp     bl, ':'
         jne     cb_swap
-        mov     al, [rsp]
+        mov     ax, [rsp]
         push    ax            ; Stack is word-aligned, so use word size register.
         jmp     main_loop
   cb_swap:
-        cmp     cl, '%'
+        cmp     bl, '%'
         jne     cb_discover
         mov     ax, [rsp+2]
-        mov     bx,  [rsp]
+        mov     dx,  [rsp]
         mov     [rsp], ax
-        mov     [rsp], bx
+        mov     [rsp+2], dx
         jmp     main_loop
   cb_discover:
-        cmp     cl, '@'
+        cmp     bl, '@'
         jne     cb_plus
         mov     ax, [rsp+4]
-        mov     bx, [rsp+2]
-        mov     [rsp+4], bx
-        mov     bx, [rsp]
+        mov     dx, [rsp+2]
+        mov     cx, [rsp]
         mov     [rsp], ax
-        mov     [rsp+2], bx
+        mov     [rsp+2], cx
+        mov     [rsp+4], dx
         jmp     main_loop
   cb_plus:
-        cmp     cl, '+'
+        cmp     bl, '+'
         jne     cb_minus
         pop     ax
-        add     [rsp], ax
+        add     [rsp], al
         jmp     main_loop
   cb_minus:
-        cmp     cl, '-'
+        cmp     bl, '-'
         jne     cb_next_char
         pop     ax
-        sub     [rsp], ax
+        sub     [rsp], al
         jmp     main_loop
   cb_next_char:
-        cmp     cl, ','
+        cmp     bl, ','
         jne     cb_print
-        mov     r12, rcx
         mov     r13, rsp
         and     spl, 0F0h
         sub     rsp, 32
         call    [getchar]
         mov     rsp, r13
-        mov     rcx, r12
-        xor     ebx, ebx  ; Set rbx to zero.
-        cmp     eax, ebx
-        cmovl   eax, ebx  ; In ^!, we use 0 on EOF.
+        xor     edx, edx  ; Set rdx to zero.
+        cmp     eax, edx
+        cmovl   eax, edx  ; In ^!, we use 0 on EOF.
         push    ax
         jmp     main_loop
   cb_print:
-        cmp     cl, '.'
+        cmp     bl, '.'
         jne     cb_loop_start
-        mov     r12, rcx
-        mov     r13, rsp
         xor     rcx, rcx        ; Clear higher bits of rcx.
         pop     cx
         xor     ch, ch          ; Clear higher byte of cx.
+        mov     r13, rsp
         and     spl, 0F0h
         sub     rsp, 32
         call    [putchar]
         mov     rsp, r13
-        mov     rcx, r12
         jmp     main_loop
   cb_loop_start:
-        cmp     cl, '['
+        cmp     bl, '['
         jne     cb_loop_end
         mov     [rsi], r14
         add     rsi, 8
@@ -103,20 +100,35 @@ section '.code' code readable executable
         call    seek_loop_end
         jmp     main_loop
   cb_loop_end:
-        cmp     cl, ']'
-        jne     cb_next_thing
+        cmp     bl, ']'
+        jne     cb_put_aux
         mov     rdx, ']'
         cmp     rsi, loops
         je      bad_char_error
         mov     r13, rsi        ; Save old value of rsi.
         sub     rsi, 8
         mov     r12, [rsi]      ; Loop start address.
-        xor     ax, ax
         pop     ax
-        test    ax, ax
+        test    al, al
         cmovnz  r14, r12        ; Set ip to start of loop if value is non-zero.
         cmovnz  rsi, r13        ; Reset loop stack if looping (undo pop).
         jmp     main_loop
+  cb_put_aux:
+        cmp     bl, '>'
+        jne     cb_get_aux
+        pop     ax
+        mov     [rdi], al
+        inc     rdi
+        jmp     main_loop
+  cb_get_aux:
+        cmp     bl, '<'
+        jne     cb_next_thing
+        dec     rdi
+        mov     al, [rdi]
+        push    ax
+        jmp     main_loop
+
+
   cb_next_thing:
         jmp     main_loop
 
@@ -129,29 +141,29 @@ section '.code' code readable executable
 
 ;; ==== seek_loop_end() ====
   seek_loop_end:
-        lea     rdi, [rsi-8]
+        lea     r9, [rsi-8]    ; Save start of loop.
         xor     rdx, rdx
         mov     al, '['
         mov     ah, ']'
         xor     rdx, rdx
         mov     dl, al
   sle_loop:
-        mov     cl, [r14]
+        mov     bl, [r14]
         inc     r14
         lea     r12, [rsi+8]    ; Incremented address.
         lea     r13, [rsi-8]    ; Decremented address.
-        mov     rbx, [rsi]
-        mov     r15, rsi
-        cmp     cl, al          ; '['
+        mov     rcx, [rsi]
+        mov     r8, rsi
+        cmp     bl, al          ; '['
         cmove   rbx, r14
         cmove   rsi, r12        ; Increment.
-        cmp     cl, ah          ; ']'
+        cmp     bl, ah          ; ']'
         cmove   rsi, r13        ; Decrement.
-        mov     [r15], rbx      ; Write into old stack top.
+        mov     [r8], rcx      ; Write into old stack top.
         jne     sle_loop
-        cmp     r15, loops      ; Check if loop stack was empty.
+        cmp     r8, loops      ; Check if loop stack was empty.
         je      eof_error
-        cmp     rsi, rdi
+        cmp     rsi, r9
         jne     sle_loop
         ret
 
@@ -192,14 +204,16 @@ section '.rdata' data readable
 
 section '.data' data readable writeable
   source:
-        db      ",:[.,:]*",0
-
+        db      "^!!:[:>:+:]<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+.",0
+        ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
   loops:
         rb      4*100
 ;  source:
 ;        rb      1024*1024
+  aux:
+        rb      1024
 
 
 
