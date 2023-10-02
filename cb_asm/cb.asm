@@ -208,8 +208,8 @@ section '.code' code readable executable
         jne    sce_loop
         mov    dl, ah          ; ')'
         cmp    rsi, rcx
-        jl     sce_loop
-        jg     bad_char_error  ; Unmatched ')'.
+        jg     sce_loop        ; rcx > rsi
+        jl     bad_char_error  ; Unmatched ')'.
         ret
 
 ;; ==== eof_error(char c) ====
@@ -249,7 +249,7 @@ section '.rdata' data readable
 
 section '.data' data readable writeable
   source:
-        db      "^!!:[:>:+:]<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+.",0
+        db      "^!!:[:>:+:](+++(.....[)])<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+.",0
         ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
