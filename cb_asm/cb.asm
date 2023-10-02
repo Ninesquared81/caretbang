@@ -7,6 +7,7 @@ section '.code' code readable executable
         lea      rsi, [loops]  ; Loop stack base pointer.
         lea      rdi, [aux]    ; Auxiliary stack pointer.
         lea      r14, [source] ; ^! instruction pointer.
+        mov      rbp, rsp      ; Set base pointer.
   main_loop:
         ;; get character
         mov      bl, [r14]
@@ -146,9 +147,19 @@ section '.code' code readable executable
         and     spl, 0F0h
         sub     rsp, 32
         call    [ExitProcess]
-
-
-  cb_next_thing:
+  cb_main_has_items:
+        cmp     bl, '?'
+        jne     cb_aux_has_items
+        cmp     rsp, rbp
+        setl    al            ; Stack grows downwards, so the condition is inverted.
+        push    ax
+        jmp     main_loop
+  cb_aux_has_items:
+        cmp     bl, ';'
+        jne     main_loop
+        cmp     rdi, aux
+        setg    al
+        push    ax
         jmp     main_loop
 
   main_loop_end:
@@ -256,7 +267,7 @@ section '.rdata' data readable
 
 section '.data' data readable writeable
   source:
-        db      "(^!!:[:>:+:](+++(.....[)])<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+.)^!!!$",0
+        db      "^!?$",0
         ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
