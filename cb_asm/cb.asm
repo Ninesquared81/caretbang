@@ -267,7 +267,7 @@ section '.rdata' data readable
 
 section '.data' data readable writeable
   source:
-        db      "^!?$",0
+        db      ",:^!!!!:+:+::++-:[:^!-[^!$]^][:.^!].",0
         ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
