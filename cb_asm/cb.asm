@@ -128,6 +128,8 @@ section '.code' code readable executable
   cb_get_aux:
         cmp     bl, '<'
         jne     cb_comment_start
+        cmp     rdi, aux
+        je      empty_stack_error
         dec     rdi
         mov     al, [rdi]
         push    ax
@@ -289,7 +291,7 @@ section '.rdata' data readable
 
 section '.data' data readable writeable
   source:
-        db      "$",0
+        db      ">w<",0
         ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
