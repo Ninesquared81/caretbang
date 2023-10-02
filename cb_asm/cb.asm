@@ -139,7 +139,8 @@ section '.code' code readable executable
         call    bad_char_error
   cb_exit:
         cmp     bl, '$'
-        jne     cb_next_thing
+        jne     cb_main_has_items
+        xor     rcx, rcx
         pop     cx
         xor     ch, ch
         and     spl, 0F0h
