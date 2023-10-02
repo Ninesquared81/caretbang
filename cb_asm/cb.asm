@@ -7,9 +7,13 @@ section '.code' code readable executable
         lea      rsi, [loops]  ; Loop stack base pointer.
         lea      rdi, [aux]    ; Auxiliary stack pointer.
         lea      r14, [source] ; ^! instruction pointer.
+        xor      eax, eax
+        push     rax
         mov      rbp, rsp      ; Set base pointer.
   main_loop:
         ;; get character
+        cmp      rsp, rbp
+        jg       empty_stack_error
         mov      bl, [r14]
         inc      r14
         test     bl, bl
@@ -81,7 +85,7 @@ section '.code' code readable executable
   cb_print:
         cmp     bl, '.'
         jne     cb_loop_start
-        xor     rcx, rcx        ; Clear higher bits of rcx.
+        xor     ecx, ecx        ; Clear higher bits of rcx.
         pop     cx
         xor     ch, ch          ; Clear higher byte of cx.
         mov     r13, rsp
@@ -141,7 +145,9 @@ section '.code' code readable executable
   cb_exit:
         cmp     bl, '$'
         jne     cb_main_has_items
-        xor     rcx, rcx
+        cmp     rsp, rbp
+        jge     empty_stack_error
+        xor     ecx, ecx
         pop     cx
         xor     ch, ch
         and     spl, 0F0h
@@ -209,7 +215,7 @@ section '.code' code readable executable
         add    rsi, 8
         mov    al, '('
         mov    ah, ')'
-        xor    rdx, rdx
+        xor    edx, edx
         mov    dl, al          ; '('
   sce_loop:
         mov    bl, [r14]
@@ -240,13 +246,27 @@ section '.code' code readable executable
 ;; ==== bad_char_error() ====
   bad_char_error:
         lea     rcx, [bad_char_error_msg]
-        xor     rdx, rdx
+        xor     edx, edx
         mov     dl, bl
         and     spl, 0F0h
         sub     rsp, 32
         call    [printf]
         mov     rcx, 1          ; Exit Failure.
         call    [ExitProcess]
+
+;; ==== empty_stack_error() ====
+  empty_stack_error:
+        lea    rcx, [empty_stack_error_msg]
+        xor    edx, edx
+        mov    dl, bl
+        mov    r8, r14
+        sub    r8, source
+        dec    r8
+        and    spl, 0A0h
+        sub    rsp, 32
+        call   [printf]
+        mov    rcx, 1
+        call   [ExitProcess]
 
 section '.idata' import data readable
         library\
@@ -264,15 +284,17 @@ section '.idata' import data readable
 section '.rdata' data readable
   eof_error_msg:      db "Unexpected EOF while parsing. Unmatched '%c'",13,10,0
   bad_char_error_msg: db "Unexpected character '%c' while parsing.",13,10,0
+  empty_stack_error_msg:
+        db      "Insufficient space on stack to carry out operation '%c' (offset %d).",13,10,0
 
 section '.data' data readable writeable
   source:
-        db      ",:^!!!!:+:+::++-:[:^!-[^!$]^][:.^!].",0
+        db      "$",0
         ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
   loops:
-        rb      4*100
+        rb      8*100
 ;  source:
 ;        rb      1024*1024
   aux:
