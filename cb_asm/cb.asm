@@ -122,11 +122,23 @@ section '.code' code readable executable
         jmp     main_loop
   cb_get_aux:
         cmp     bl, '<'
-        jne     cb_next_thing
+        jne     cb_comment_start
         dec     rdi
         mov     al, [rdi]
         push    ax
         jmp     main_loop
+  cb_comment_start:
+        cmp     bl, '('
+        jne     cb_comment_end
+        call    seek_comment_end
+        jmp     main_loop
+  cb_comment_end:
+        ;; Dummy instruction to catch if user had imbalanced parentheses.
+        cmp     bl, ')'
+        jne     cb_next_thing
+        xor     rdx, rdx
+        mov     dl, bl
+        call    bad_char_error
 
 
   cb_next_thing:
@@ -142,20 +154,25 @@ section '.code' code readable executable
 ;; ==== seek_loop_end() ====
   seek_loop_end:
         lea     r9, [rsi-8]    ; Save start of loop.
-        xor     rdx, rdx
         mov     al, '['
         mov     ah, ']'
         xor     rdx, rdx
-        mov     dl, al
+        mov     dl, al         ; ']'
   sle_loop:
         mov     bl, [r14]
         inc     r14
+        test    bl, bl
+        jz      eof_error      ; Unterminated loop.
+        cmp     bl, '('
+        jne     sle_not_a_comment
+        call    seek_comment_end
+  sle_not_a_comment:
         lea     r12, [rsi+8]    ; Incremented address.
         lea     r13, [rsi-8]    ; Decremented address.
         mov     rcx, [rsi]
         mov     r8, rsi
         cmp     bl, al          ; '['
-        cmove   rbx, r14
+        cmove   rcx, r14
         cmove   rsi, r12        ; Increment.
         cmp     bl, ah          ; ']'
         cmove   rsi, r13        ; Decrement.
@@ -165,6 +182,34 @@ section '.code' code readable executable
         je      eof_error
         cmp     rsi, r9
         jne     sle_loop
+        ret
+
+;; ==== seek_comment_end() ====
+  seek_comment_end:
+        mov    rcx, rsi        ; Save old top of loop stack.
+        mov    [rsi], r14      ; Push current ip to loop stack.
+        add    rsi, 8
+        mov    al, '('
+        mov    ah, ')'
+        xor    rdx, rdx
+        mov    dl, al          ; '('
+  sce_loop:
+        mov    bl, [r14]
+        inc    r14
+        test   bl, bl
+        jz     eof_error       ; Unterminated comment.
+        lea    r8, [rsi+8]     ; Incremented address.
+        lea    r9, [rsi-8]     ; Decremented address.
+        mov    [rsi], r14      ; rsi points to one past the end, so we won't overwrite anything.
+        cmp    bl, al          ; '('
+        cmove  rsi, r8         ; Increment.
+        cmp    bl, ah          ; ')'
+        cmove  rsi, r9         ; Decrement.
+        jne    sce_loop
+        mov    dl, ah          ; ')'
+        cmp    rsi, rcx
+        jl     sce_loop
+        jg     bad_char_error  ; Unmatched ')'.
         ret
 
 ;; ==== eof_error(char c) ====
