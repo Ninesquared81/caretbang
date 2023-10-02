@@ -135,10 +135,16 @@ section '.code' code readable executable
   cb_comment_end:
         ;; Dummy instruction to catch if user had imbalanced parentheses.
         cmp     bl, ')'
-        jne     cb_next_thing
-        xor     rdx, rdx
-        mov     dl, bl
+        jne     cb_exit
         call    bad_char_error
+  cb_exit:
+        cmp     bl, '$'
+        jne     cb_next_thing
+        pop     cx
+        xor     ch, ch
+        and     spl, 0F0h
+        sub     rsp, 32
+        call    [ExitProcess]
 
 
   cb_next_thing:
@@ -206,10 +212,8 @@ section '.code' code readable executable
         cmp    bl, ah          ; ')'
         cmove  rsi, r9         ; Decrement.
         jne    sce_loop
-        mov    dl, ah          ; ')'
         cmp    rsi, rcx
-        jg     sce_loop        ; rcx > rsi
-        jl     bad_char_error  ; Unmatched ')'.
+        jne    sce_loop        ; rsi > rcx
         ret
 
 ;; ==== eof_error(char c) ====
@@ -221,9 +225,11 @@ section '.code' code readable executable
         mov     rcx, 1          ; Exit Failure.
         call    [ExitProcess]
 
-;; ==== bad_char_error(char c) ====
+;; ==== bad_char_error() ====
   bad_char_error:
         lea     rcx, [bad_char_error_msg]
+        xor     rdx, rdx
+        mov     dl, bl
         and     spl, 0F0h
         sub     rsp, 32
         call    [printf]
@@ -249,7 +255,7 @@ section '.rdata' data readable
 
 section '.data' data readable writeable
   source:
-        db      "^!!:[:>:+:](+++(.....[)])<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+.",0
+        db      "(^!!:[:>:+:](+++(.....[)])<<:<<@<::>@+.%>%:>@:>+!!!!:!.:@+:::..!!!:.<<:<<@:@:@+<:@+.%>%.+%>+!!!.:.!!!...<!.<<+.)^!!!$",0
         ;db ",:[.,:]*",0
 
 section '.bss' data readable writeable
