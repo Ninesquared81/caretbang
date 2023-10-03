@@ -264,7 +264,7 @@ section '.code' code readable executable
         mov    r8, r14
         sub    r8, source
         dec    r8
-        and    spl, 0A0h
+        and    spl, 0F0h
         sub    rsp, 32
         call   [printf]
         mov    rcx, 1
