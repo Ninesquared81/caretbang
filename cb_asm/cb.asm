@@ -3,31 +3,38 @@ include 'win64ax.inc'
 
 section '.code' code readable executable
   start:
-        ;int3
-        lea      rsi, [loops]  ; Loop stack base pointer.
-        lea      rdi, [aux]    ; Auxiliary stack pointer.
-        lea      r14, [source] ; ^! instruction pointer.
-        xor      eax, eax
-        push     rax
-        mov      rbp, rsp      ; Set base pointer.
+        int3
+        and     spl, 0F0h
+        sub     rsp, 32
+        call    [GetProcessHeap]
+        mov     [heap_handle], rax
+        test    rax, rax
+        jz      win_error
+        call    get_source
+        lea     rsi, [loops]  ; Loop stack base pointer.
+        lea     rdi, [aux]    ; Auxiliary stack pointer.
+        lea     r14, [source + 2] ; ^! instruction pointer.
+        xor     eax, eax
+        push    rax
+        mov     rbp, rsp      ; Set base pointer.
   main_loop:
         ;; get character
-        cmp      rsp, rbp
-        jg       empty_stack_error
-        mov      bl, [r14]
-        inc      r14
-        test     bl, bl
-        jz       main_loop_end
+        cmp     rsp, rbp
+        jg      empty_stack_error
+        mov     bx, [r14]
+        inc     r14
+        test    bx, bx
+        jz      main_loop_end
   cb_caret:
-        cmp      bl, '^'
-        jne      cb_bang
-        push     word 0
-        jmp      main_loop
+        cmp     bl, '^'
+        jne     cb_bang
+        push    word 0
+        jmp     main_loop
   cb_bang:
-        cmp      bl, '!'
-        jne      cb_pop
-        inc      byte [rsp]
-        jmp      main_loop
+        cmp     bl, '!'
+        jne     cb_pop
+        inc     byte [rsp]
+        jmp     main_loop
   cb_pop:
         cmp     bl, '*'
         jne     cb_dupe
@@ -159,7 +166,7 @@ section '.code' code readable executable
         cmp     bl, '?'
         jne     cb_aux_has_items
         cmp     rsp, rbp
-        setl    al            ; Stack grows downwards, so the condition is inverted.
+        setl    al              ; Stack grows downwards, so the condition is inverted.
         push    ax
         jmp     main_loop
   cb_aux_has_items:
@@ -172,23 +179,23 @@ section '.code' code readable executable
 
   main_loop_end:
         ;; Exit the process.
-        xor      rcx, rcx
-        and      spl, 0F0h
-        sub      rsp, 32
-        call     [ExitProcess]
+        xor     rcx, rcx
+        and     spl, 0F0h
+        sub     rsp, 32
+        call    [ExitProcess]
 
 ;; ==== seek_loop_end() ====
   seek_loop_end:
-        lea     r9, [rsi-8]    ; Save start of loop.
+        lea     r9, [rsi-8]     ; Save start of loop.
         mov     al, '['
         mov     ah, ']'
         xor     rdx, rdx
-        mov     dl, al         ; ']'
+        mov     dl, ah          ; ']'
   sle_loop:
-        mov     bl, [r14]
+        mov     bx, [r14]
         inc     r14
         test    bl, bl
-        jz      eof_error      ; Unterminated loop.
+        jz      eof_error       ; Unterminated loop.
         cmp     bl, '('
         jne     sle_not_a_comment
         call    seek_comment_end
@@ -202,9 +209,9 @@ section '.code' code readable executable
         cmove   rsi, r12        ; Increment.
         cmp     bl, ah          ; ']'
         cmove   rsi, r13        ; Decrement.
-        mov     [r8], rcx      ; Write into old stack top.
+        mov     [r8], rcx       ; Write into old stack top.
         jne     sle_loop
-        cmp     r8, loops      ; Check if loop stack was empty.
+        cmp     r8, loops       ; Check if loop stack was empty.
         je      eof_error
         cmp     rsi, r9
         jne     sle_loop
@@ -212,30 +219,277 @@ section '.code' code readable executable
 
 ;; ==== seek_comment_end() ====
   seek_comment_end:
-        mov    rcx, rsi        ; Save old top of loop stack.
-        mov    [rsi], r14      ; Push current ip to loop stack.
-        add    rsi, 8
-        mov    al, '('
-        mov    ah, ')'
-        xor    edx, edx
-        mov    dl, al          ; '('
+        mov     rcx, rsi        ; Save old top of loop stack.
+        mov     [rsi], r14      ; Push current ip to loop stack.
+        add     rsi, 8
+        mov     al, '('
+        mov     ah, ')'
+        xor     edx, edx
+        mov     dl, al          ; '('
   sce_loop:
-        mov    bl, [r14]
-        inc    r14
-        test   bl, bl
-        jz     eof_error       ; Unterminated comment.
-        lea    r8, [rsi+8]     ; Incremented address.
-        lea    r9, [rsi-8]     ; Decremented address.
-        mov    [rsi], r14      ; rsi points to one past the end, so we won't overwrite anything.
-        cmp    bl, al          ; '('
-        cmove  rsi, r8         ; Increment.
-        cmp    bl, ah          ; ')'
-        cmove  rsi, r9         ; Decrement.
-        jne    sce_loop
-        cmp    rsi, rcx
-        jne    sce_loop        ; rsi > rcx
+        mov     bx, [r14]
+        inc     r14
+        test    bx, bx
+        jz      eof_error       ; Unterminated comment.
+        lea     r8, [rsi+8]     ; Incremented address.
+        lea     r9, [rsi-8]     ; Decremented address.
+        mov     [rsi], r14      ; rsi points to one past the end, so we won't overwrite anything.
+        cmp     bl, '('         ; '('
+        cmove   rsi, r8         ; Increment.
+        cmp     bl, ')'         ; ')'
+        cmove   rsi, r9         ; Decrement.
+        jne     sce_loop
+        cmp     rsi, rcx
+        jne     sce_loop        ; rsi > rcx
         ret
 
+;; ==== get_source() ====
+  get_source:
+        push    rbp
+        push    rbx
+        push    r12
+        push    r13
+        mov     rbp, rsp
+        sub     rsp, 3*8  ; Space for two qwords (argc, file_size) plus padding.
+        mov     rbx, rsp  ; Pointer to argc.
+  gs_main_body:
+        sub     rsp, 32
+        call    [GetCommandLineW]  ; Raw command line argument string.
+        mov     rcx, rax
+        mov     rdx, rbx
+        call    [CommandLineToArgvW]
+        test    rax, rax
+        jz      win_error
+        mov     r12, rax
+        mov     rcx, [rbx]  ; argc
+        mov     rdx, r12    ; argv
+        lea     r8, [rbx+8] ; file_size
+        call    parse_args
+        mov     r13, rax    ; pointer to buffer containing file contents.
+        test    rax, rax
+        jz      gs_free_argv
+  gs_move_to_buffer:
+        mov     rcx, [heap_handle]
+        xor     rdx, rdx
+        mov     r8, r13
+        call    [HeapFree]
+  gs_free_argv:
+        mov     rcx, r12
+        call    [LocalFree]
+        test    rax, rax
+        jnz     win_error
+        test    r13, r13
+        jz      gs_error ; See if the pointer returned byt parse_args was NULL.
+  gs_exit:
+        mov     rsp, rbp
+        pop     r13
+        pop     r12
+        pop     rbx
+        pop     rbp
+        ret
+  gs_error:
+        mov     rcx, qword [exit_code_error]
+        call    [ExitProcess]
+
+;; ==== char *parse_args(argc, argv, *size) ====
+  parse_args:
+        push    rbp
+        push    rbx ; Buffer.
+        push    rdi ; Address of size.
+        push    rsi ; Heap handle.
+        push    r12 ; File handle.
+        push    r13 ; argv.
+        mov     rbp, rsp
+        mov     r13, rdx  ; argv
+        mov     rdi, r8
+        mov     rsi, [heap_handle]
+        xor     rbx, rbx  ; Initialize rbx (return) to NULL.
+        push    rax       ; Dummy push to align stack.
+        sub     rsp, 32
+        cmp     ecx, 2    ; argc
+        jl      too_few_args_error
+        je      pa_open_file
+        ;; Warn that further args are ignored.
+        lea     rcx, [extra_args_warn_msg]
+        call    [printf]
+        mov     rcx, [r13]  ; argv[0]
+        call    print_usage
+  pa_open_file:
+        mov     rcx, [r13+8]                            ; argv[1], filename
+        mov     rdx, GENERIC_READ                       ; Open for reading only.
+        xor     r8, r8                                  ; No sharing.
+        xor     r9, r9                                  ; No security attributes.
+        mov     dword [rsp],    OPEN_EXISTING           ; Fail if the file doesn't exist.
+        mov     dword [rsp+8],  FILE_ATTRIBUTE_NORMAL   ; Normal file attributes.
+        mov     dword [rsp+16], r9d                     ; No template file.
+        sub     rsp, 32
+        call    [CreateFileW]
+        mov     r12, rax                                ; File handle.
+        cmp     rax, INVALID_HANDLE_VALUE
+        jz      pa_error_close_file
+  pa_get_filesize:
+        mov     rcx, r12
+        lea     rdx, [rdi]
+        call    [GetFileSizeEx]
+        test    al, al
+        jz      pa_error_close_file
+  pa_alloc_buffer:
+        mov     rcx, rsi   ; Heap handle.
+        xor     rdx, rdx   ; No flags.
+        mov     r8, [rdi]  ; File (hence buffer) size.
+        call    [HeapAlloc]
+        mov     rbx, rax
+        test    rax, rax
+        jz      pa_close_file        ; Cannot call GetLastError.
+  pa_read_file:
+        mov     rcx, r12             ; File handle.
+        lea     rdx, [rbx]           ; Pointer to buffer.
+        mov     r8, [rdi]            ; Max number of bytes to read.
+        lea     r9, [rsp+32+8]       ; Reserve space for lpNumberOfBytesRead.
+        mov     [rsp+32], dword 0
+        call    [ReadFile]
+        test    eax, eax
+        jz      pa_error_free_buffer_close_file
+  pa_close_file:
+        mov     rcx, r12  ; File handle.
+        call    [CloseHandle]
+        test    al, al
+        jz      pa_error_free_buffer_only
+  pa_exit:
+        mov     rax, rbx  ; Return value.
+        mov     rsp, rbp
+        pop     r13
+        pop     r12
+        pop     rsi
+        pop     rdi
+        pop     rbx
+        pop     rbp
+        ret
+  pa_error_free_buffer_only:
+        call    win_error_warn
+        mov     [exit_code_error], eax
+        mov     rcx, rsi ; Heap handle.
+        xor     rdx, rdx ; No options.
+        mov     r8, rbx  ; Biffer.
+        call    [HeapFree]
+        xor     rbx, rbx
+        test    al, al
+        jnz     pa_exit
+        jmp     pa_error
+  pa_error_free_buffer_close_file:
+        call    win_error_warn
+        mov     [exit_code_error], eax
+        mov     rcx, rsi ; Heap handle.
+        xor     rdx, rdx ; No options.
+        mov     r8, rbx  ; Buffer.
+        call    [HeapFree]
+        test    al, al
+        jnz     pa_error_close_file_exit
+  pa_error_close_file:
+        call    win_error_warn
+        mov     [exit_code_error], eax
+  pa_error_close_file_exit:
+        xor     rbx, rbx
+        mov     rcx, r12
+        call    [CloseHandle]
+        test    al, al
+        jnz     pa_exit
+  pa_error:
+        xor     rbx, rbx
+        call    win_error_warn
+        mov     [exit_code_error], eax
+        jmp     pa_exit
+        
+        
+;; ==== too_few_args_error(argc, argv) ====
+  too_few_args_error:
+        lea     rcx, [too_few_args_error_msg]
+        mov     r12, [rdx]  ; argv[0]
+        and     spl, 0F0h
+        sub     rsp, 32
+        call    [printf]
+        mov     rcx, r12  ; argv[0]
+        call    print_usage
+        mov     rcx, 1
+        call    [ExitProcess]
+
+;; ==== print_usage(name) ====
+  print_usage:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     rdx, rcx  ; argv[0]
+        lea     rcx, [usage_msg]
+        call    [printf]
+        mov     rsp, rbp
+        pop     rbp
+        ret
+
+;; ==== win_error_warn() ====
+  win_error_warn:
+        push    rbp
+        push    rbx
+        push    r12
+        push    r13
+        mov     rbp, rsp
+  wew_main_body:
+        FLAGS = FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_FROM_SYSTEM
+        push    rax               ; Dummy push to align stack.
+        lea     r12, [rsp]        ; Reserve stack slot for message pointer.
+        sub     rsp, 64
+  wew_retry:
+        call    [GetLastError]
+        mov     rbx, rax                ; Error code.
+        mov     rcx, FLAGS              ; Flags.
+        xor     rdx, rdx                ; Parameter ignored.
+        mov     r8, rax                 ; Error code.
+        xor     r9, r9                  ; Language ID (0).
+        mov     [rsp+32],    r12        ; Address to write pointer to message into.
+        mov     [rsp+32+8],  dword 0    ; nSize.
+        mov     [rsp+32+16], dword 0    ; arguments (NULL).
+        call    [FormatMessageW]
+        test    rax, rax
+        jz      wew_error_error
+        lea     rcx, [win_error_msg]
+        mov     rdx, rbx
+        mov     r8, [r12]
+        call    [printf]
+        mov     rcx, [r12]
+        call    [LocalFree]
+        cmp     rax, rax
+        jnz     wew_error_error
+  wew_exit:
+        mov     rax, rbx  ; Return value: error code.
+        mov     rsp, rbp
+        pop     rbx
+        pop     r13
+        pop     r12
+        pop     rbp
+        ret
+  wew_error_error:
+        MAX_ERROR_COUNT = 32
+        inc     r13  ; Error count.
+        cmp     r13, MAX_ERROR_COUNT
+        jge     wew_error_final
+        lea     rcx, [win_error_error_msg]
+        call    [printf]
+        jmp     wew_retry
+  wew_error_final:
+        call    [GetLastError]
+        mov     rbx, rdx ; Original error code.
+        mov     rax, rbx ; Final error code.
+        lea     rcx, [win_error_final_msg]
+        call    [printf]
+        jmp     wew_exit
+
+;; ==== win_error() ====
+  win_error:
+        and     rsp, 0F0h
+        sub     rsp, 32
+        call    win_error_warn
+        mov     rcx, rax
+        call    [ExitProcess]
+        
 ;; ==== eof_error(char c) ====
   eof_error:
         lea     rcx, [eof_error_msg]
@@ -258,49 +512,78 @@ section '.code' code readable executable
 
 ;; ==== empty_stack_error() ====
   empty_stack_error:
-        lea    rcx, [empty_stack_error_msg]
-        xor    edx, edx
-        mov    dl, bl
-        mov    r8, r14
-        sub    r8, source
-        dec    r8
-        and    spl, 0F0h
-        sub    rsp, 32
-        call   [printf]
-        mov    rcx, 1
-        call   [ExitProcess]
+        lea     rcx, [empty_stack_error_msg]
+        xor     edx, edx
+        mov     dl, bl
+        mov     r8, r14
+        sub     r8, source
+        dec     r8
+        and     spl, 0F0h
+        sub     rsp, 32
+        call    [printf]
+        mov     rcx, 1
+        call    [ExitProcess]
 
 section '.idata' import data readable
         library\
                 kernel, 'kernel32.dll',\
+                shell, 'shell32.dll',\
                 msvcrt, 'msvcrt.dll'
 
         import kernel,\
-               ExitProcess, 'ExitProcess'
+                CloseHandle, 'CloseHandle',\
+                CreateFileW, 'CreateFileW',\
+                ExitProcess, 'ExitProcess',\
+                FormatMessageW, 'FormatMessageW',\
+                GetCommandLineW, 'GetCommandLineW',\
+                GetFileSizeEx, 'GetFileSizeEx',\
+                GetLastError, 'GetLastError',\
+                GetProcessHeap, 'GetProcessHeap',\
+                GetUserDefaultUILanguage, 'GetUserDefaultUILanguage',\
+                HeapAlloc, 'HeapAlloc',\
+                HeapFree, 'HeapFree',\
+                LocalFree, 'LocalFree',\
+                ReadFile, 'ReadFile'
+
+        import shell,\
+                CommandLineToArgvW, 'CommandLineToArgvW'
 
         import msvcrt,\
-               printf, 'printf',\
-               getchar, 'getchar',\
-               putchar, 'putchar'
+                printf, 'printf',\
+                getchar, 'getchar',\
+                putchar, 'putchar'
 
 section '.rdata' data readable
-  eof_error_msg:      db "Unexpected EOF while parsing. Unmatched '%c'",13,10,0
-  bad_char_error_msg: db "Unexpected character '%c' while parsing.",13,10,0
+  eof_error_msg:      db "Unexpected EOF while parsing. Unmatched '%c'",10,0
+  bad_char_error_msg: db "Unexpected character '%c' while parsing.",10,0
   empty_stack_error_msg:
-        db      "Insufficient space on stack to carry out operation '%c' (offset %d).",13,10,0
+        db      "Insufficient space on stack to carry out operation '%c' (offset %d).",10,0
+  win_error_msg:
+        db      "An error occurred [%d]: %ls",10,0
+  win_error_error_msg:
+        db      "An error occurred while handling another error [%d]:",10,0
+  win_error_final_msg:
+        db      "An error ocurred [%d] while handling another error [%d].",10,\
+                "Maximum number of error messages reached.",10,0
+  too_few_args_error_msg:
+        db      "Too few arguments.",10,0
+  usage_msg:
+        db      "Usage: %ls filename",10,0
+  extra_args_warn_msg:
+        db      "Warning: extra arguments ignored.",10,0
 
 section '.data' data readable writeable
-  source:
-        db      ">w<",0
-        ;db ",:[.,:]*",0
+  exit_code_error dd 1
 
 section '.bss' data readable writeable
   loops:
         rb      8*100
-;  source:
-;        rb      1024*1024
+
+  source:
+        source_size = 1024*1024
+        rb      source_size
   aux:
         rb      1024
-
-
+  heap_handle:
+        rq      1
 
