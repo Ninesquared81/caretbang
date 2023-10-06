@@ -134,23 +134,13 @@ section '.code' code readable executable
         jmp     main_loop
   cb_get_aux:
         cmp     bl, '<'
-        jne     cb_comment_start
+        jne     cb_exit
         cmp     rdi, aux
         je      empty_stack_error
         dec     rdi
         mov     al, [rdi]
         push    ax
         jmp     main_loop
-  cb_comment_start:
-        cmp     bl, '('
-        jne     cb_comment_end
-        call    seek_comment_end
-        jmp     main_loop
-  cb_comment_end:
-        ;; Dummy instruction to catch if user had imbalanced parentheses.
-        cmp     bl, ')'
-        jne     cb_exit
-        call    bad_char_error
   cb_exit:
         cmp     bl, '$'
         jne     cb_main_has_items
