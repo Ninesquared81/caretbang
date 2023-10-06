@@ -333,6 +333,7 @@ section '.code' code readable executable
         mov     rcx, [r13]  ; argv[0]
         call    print_usage
   pa_open_file:
+        ;; int3
         mov     rcx, [r13+8]                            ; argv[1], filename
         mov     rdx, GENERIC_READ                       ; Open for reading only.
         xor     r8, r8                                  ; No sharing.
@@ -344,7 +345,7 @@ section '.code' code readable executable
         call    [CreateFileW]
         mov     r12, rax                                ; File handle.
         cmp     rax, INVALID_HANDLE_VALUE
-        jz      pa_error_close_file
+        je      pa_error
   pa_get_filesize:
         mov     rcx, r12
         lea     rdx, [rdi]
@@ -600,14 +601,14 @@ section '.code' code readable executable
         call    [printf]
         mov     rcx, [r12]
         call    [LocalFree]
-        cmp     rax, rax
+        test    rax, rax
         jnz     wew_error_error
   wew_exit:
         mov     rax, rbx  ; Return value: error code.
         mov     rsp, rbp
-        pop     rbx
         pop     r13
         pop     r12
+        pop     rbx
         pop     rbp
         ret
   wew_error_error:
