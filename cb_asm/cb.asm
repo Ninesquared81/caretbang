@@ -3,7 +3,7 @@ include 'win64ax.inc'
 
 section '.code' code readable executable
   start:
-        int3
+        ;; int3
         and     spl, 0F0h
         sub     rsp, 32
         call    [GetProcessHeap]
@@ -13,7 +13,7 @@ section '.code' code readable executable
         call    get_source
         lea     rsi, [loops]  ; Loop stack base pointer.
         lea     rdi, [aux]    ; Auxiliary stack pointer.
-        lea     r14, [source + 2] ; ^! instruction pointer.
+        lea     r14, [source] ; ^! instruction pointer.
         xor     eax, eax
         push    rax
         mov     rbp, rsp      ; Set base pointer.
@@ -217,41 +217,49 @@ section '.code' code readable executable
         jne     sle_loop
         ret
 
-;; ==== seek_comment_end() ====
+;; ==== char *seek_comment_end(file_contents, file_end_ptr, stride) ====
   seek_comment_end:
-        mov     rcx, rsi        ; Save old top of loop stack.
-        mov     [rsi], r14      ; Push current ip to loop stack.
-        add     rsi, 8
-        mov     al, '('
-        mov     ah, ')'
-        xor     edx, edx
-        mov     dl, al          ; '('
-  sce_loop:
-        mov     bx, [r14]
-        inc     r14
-        test    bx, bx
-        jz      eof_error       ; Unterminated comment.
-        lea     r8, [rsi+8]     ; Incremented address.
-        lea     r9, [rsi-8]     ; Decremented address.
-        mov     [rsi], r14      ; rsi points to one past the end, so we won't overwrite anything.
-        cmp     bl, '('         ; '('
-        cmove   rsi, r8         ; Increment.
-        cmp     bl, ')'         ; ')'
-        cmove   rsi, r9         ; Decrement.
-        jne     sce_loop
-        cmp     rsi, rcx
-        jne     sce_loop        ; rsi > rcx
+        push    rbp
+    .main_body:
+        lea     rax, [rcx+1] ; Pointer to file_contents.
+        mov     rcx, 1       ; Comment counter.
+    .loop:
+        mov     r9b, [rax]
+        add     rax, r8
+        cmp     rax, rdx
+        jge     .error_eof
+      .start_comment:
+        cmp     r9b, '('
+        jne     .end_comment
+        inc     rcx
+        jmp     .loop
+      .end_comment:
+        cmp     r9b, ')'
+        jne     .loop
+        dec     rcx
+        test    rcx, rcx
+        jnz     .loop
+    .exit:
+        pop     rbp
         ret
+    .error_eof:
+        mov     rcx, '('
+        call    eof_error_warn
+        xor     rax, rax
+        jmp     .exit
 
 ;; ==== get_source() ====
   get_source:
+        ;; int3
         push    rbp
         push    rbx
         push    r12
         push    r13
+        push    r14 ; Had_error
         mov     rbp, rsp
-        sub     rsp, 3*8  ; Space for two qwords (argc, file_size) plus padding.
+        sub     rsp, 2*8  ; Space for two qwords (argc, file_size).
         mov     rbx, rsp  ; Pointer to argc.
+        xor     r14, r14
   gs_main_body:
         sub     rsp, 32
         call    [GetCommandLineW]  ; Raw command line argument string.
@@ -267,28 +275,48 @@ section '.code' code readable executable
         call    parse_args
         mov     r13, rax    ; pointer to buffer containing file contents.
         test    rax, rax
-        jz      gs_free_argv
-  gs_move_to_buffer:
+        jz      gs_error_free_argv
+  gs_move_to_source_buffer:
+        mov     rcx, r13
+        mov     rdx, [rbx+8]
+        call    move_to_source_buffer
+        test    rax, rax
+        jz      gs_error_free_file_contents
+  gs_free_file_contents:
         mov     rcx, [heap_handle]
         xor     rdx, rdx
         mov     r8, r13
         call    [HeapFree]
+        test    al, al
+        jnz     gs_free_argv
+        call    win_error_warn
+        mov     [exit_code_error], eax
+        jmp     gs_error_free_argv
   gs_free_argv:
         mov     rcx, r12
         call    [LocalFree]
         test    rax, rax
         jnz     win_error
-        test    r13, r13
-        jz      gs_error ; See if the pointer returned byt parse_args was NULL.
   gs_exit:
         mov     rsp, rbp
+        pop     r14
         pop     r13
         pop     r12
         pop     rbx
         pop     rbp
         ret
+  gs_error_free_file_contents:
+        mov     rcx, [heap_handle]
+        xor     rdx, rdx
+        mov     r8, r13
+        call    [HeapFree]
+  gs_error_free_argv:
+        mov     rcx, r12
+        call    [LocalFree]
+        test    rax, rax
+        jnz     win_error
   gs_error:
-        mov     rcx, qword [exit_code_error]
+        mov     ecx, dword [exit_code_error]
         call    [ExitProcess]
 
 ;; ==== char *parse_args(argc, argv, *size) ====
@@ -399,8 +427,134 @@ section '.code' code readable executable
         call    win_error_warn
         mov     [exit_code_error], eax
         jmp     pa_exit
-        
-        
+
+;; ==== bool move_to_source_buffer(file_contents, filesize)
+  move_to_source_buffer:
+        push    rbp
+        push    rbx ; Source buffer pointer
+        push    rdi ; Current character
+        push    rsi ; Source buffer end
+        push    r12 ; File contents buffer end
+        push    r13 ; Stride (important for multibyte encodings).
+        mov     rbp, rsp
+    .main_body:
+        push    rax ; Dummy push to align stack.
+        lea     rbx, [source]
+        lea     rsi, [source + source_size]
+        lea     r12, [rcx + rdx]
+        cmp     rcx, r12
+        jg      .error_memory
+        mov     r13, 1 ; Default stride for ASCII and UTF-8
+    .guess_encoding:
+        ;; Look for a BOM.
+        ;; We check for UTF-16 BE/LE and if not, assume ASCII/UTF-8/Windows-1252.
+        ;; Note that it is safe to not distinguish these three since we only care about certain
+        ;; ASCII characters (the instructions). These do not clash with 1252 since it is merely
+        ;; an extension of ASCII, and neither does it clash with extra bytes of UTF-8, since the
+        ;; first bit is always set for multibyte codepoints (in every byte of the codepoint).
+        ;; Note, however, that a Windows-1252 file starting with FF FE / FE FF will be
+        ;; misinterpreted as UTF-16.
+        cmp     rdx, 1
+        jl      .exit           ; Zero, skip entire function.
+        je      .main_loop      ; One byte; assume ASCII et al.
+        mov     r8w, word [rcx]
+        cmp     r8w, 0FEFFh
+        je      .utf16_le
+        cmp     r8w, 0FFEFh
+        jne     .main_loop      ; Assume UTF-8/ASCII/Windows-1252.
+      .utf16_be:
+        inc     rcx             ; Skip MSB.
+      .utf16_le:
+        inc     r13             ; Set stride to 2.
+        add     rcx, r13        ; Skip BOM.
+        cmp     rdx, 2
+        je      .exit           ; BOM was only thing in file.
+    .main_loop:
+        mov     dil, [rcx]
+      .comment_start:
+        cmp     dil, '('
+        jne     .comment_end
+        push    rdx
+        push    rcx
+        mov     rdx, r12 ; End pointer.
+        mov     r8, r13  ; Stride.
+        call    seek_comment_end
+        pop     rdx
+        pop     rcx
+        test    rax, rax
+        jz      .error
+        mov     rcx, rax
+        jmp     .main_loop_update
+      .comment_end:
+        cmp     dil, ')'
+        jne     .other_instructions
+        xor     ecx, ecx
+        mov     cl, dil
+        call    bad_char_error_warn
+        jmp     .error
+      .other_instructions:
+        cmp     dil, '^'
+        je      .instruction
+        cmp     dil, '!'
+        je      .instruction
+        cmp     dil, '*'
+        je      .instruction
+        cmp     dil, ':'
+        je      .instruction
+        cmp     dil, '%'
+        je      .instruction
+        cmp     dil, '@'
+        je      .instruction
+        cmp     dil, '+'
+        je      .instruction
+        cmp     dil, '-'
+        je      .instruction
+        cmp     dil, '.'
+        je      .instruction
+        cmp     dil, ','
+        je      .instruction
+        cmp     dil, '['
+        je      .instruction
+        cmp     dil, ']'
+        je      .instruction
+        cmp     dil, '>'
+        je      .instruction
+        cmp     dil, '<'
+        je      .instruction
+        cmp     dil, '$'
+        je      .instruction
+        cmp     dil, '?'
+        je      .instruction
+        cmp     dil, ';'
+        jne     .main_loop_update
+      .instruction:
+        cmp     rbx, rsi
+        je      .error_memory
+        mov     [rbx], dil
+        inc     rbx
+      .main_loop_update:
+        add     rcx, r13
+        cmp     rcx, r12
+        jl      .main_loop
+    .main_loop_end:
+        mov     rax, 1   ; Success.
+    .exit:
+        mov     rsp, rbp
+        pop     r13
+        pop     r12
+        pop     rsi
+        pop     rdi
+        pop     rbx
+        pop     rbp
+        ret
+    .error_memory:
+        sub     rsp, 32
+        mov     rcx, [file_too_big_msg]
+        call    [printf]
+    .error:
+        xor     rax, rax ; Error.
+        jmp     .exit
+
 ;; ==== too_few_args_error(argc, argv) ====
   too_few_args_error:
         lea     rcx, [too_few_args_error_msg]
@@ -489,15 +643,38 @@ section '.code' code readable executable
         call    win_error_warn
         mov     rcx, rax
         call    [ExitProcess]
-        
-;; ==== eof_error(char c) ====
-  eof_error:
+
+;; ==== eof_error_warn(ch) ====
+  eof_error_warn:
+        push    rbp
         lea     rcx, [eof_error_msg]
-        and     spl, 0F0h
         sub     rsp, 32
         call    [printf]
+        mov     rsp, rbp
+        pop     rbp
+        ret
+
+;; ==== eof_error(ch) ====
+  eof_error:
+        and     spl, 0F0h
+        call    eof_error_warn
         mov     rcx, 1          ; Exit Failure.
         call    [ExitProcess]
+
+;; ==== bad_char_error_warn(ch) ====
+  bad_char_error_warn:
+        push    rbp
+        mov     rbp, rsp
+    .main_body:
+        xor     rdx, rdx
+        mov     dl, cl
+        lea     rcx, [bad_char_error_msg]
+        sub     rsp, 32
+        call    [printf] 
+    .exit:
+        mov     rsp, rbp
+        pop     rbp
+        ret
 
 ;; ==== bad_char_error() ====
   bad_char_error:
@@ -571,6 +748,8 @@ section '.rdata' data readable
         db      "Usage: %ls filename",10,0
   extra_args_warn_msg:
         db      "Warning: extra arguments ignored.",10,0
+  file_too_big_msg:
+        db      "Source file too large. Try a smaller file.",10,0
 
 section '.data' data readable writeable
   exit_code_error dd 1
