@@ -104,12 +104,19 @@ section '.code' code readable executable
   cb_loop_start:
         cmp     bl, '['
         jne     cb_loop_end
-        mov     [rsi], r14
+        mov     [rsi], r14      ; Push ip to loop stack.
         add     rsi, 8
         pop     ax
         test    al, al
         jnz     main_loop       ; Continue into loop.
+        push    rsp
+        and     spl, 0F0h
+        mov     rcx, r14
+        mov     r14, rsi
         call    seek_loop_end
+        mov     r14, rax
+        sub     rsi, 8          ; Pop loop address.
+        pop     rsp
         jmp     main_loop
   cb_loop_end:
         cmp     bl, ']'
@@ -174,38 +181,32 @@ section '.code' code readable executable
         sub     rsp, 32
         call    [ExitProcess]
 
-;; ==== seek_loop_end() ====
+;; ==== char *seek_loop_end(ip, loop_stack_ptr) ====
   seek_loop_end:
-        lea     r9, [rsi-8]     ; Save start of loop.
-        mov     al, '['
-        mov     ah, ']'
-        xor     rdx, rdx
-        mov     dl, ah          ; ']'
-  sle_loop:
-        mov     bx, [r14]
-        inc     r14
-        test    bl, bl
-        jz      eof_error       ; Unterminated loop.
-        cmp     bl, '('
-        jne     sle_not_a_comment
-        call    seek_comment_end
-  sle_not_a_comment:
-        lea     r12, [rsi+8]    ; Incremented address.
-        lea     r13, [rsi-8]    ; Decremented address.
-        mov     rcx, [rsi]
-        mov     r8, rsi
-        cmp     bl, al          ; '['
-        cmove   rcx, r14
-        cmove   rsi, r12        ; Increment.
-        cmp     bl, ah          ; ']'
-        cmove   rsi, r13        ; Decrement.
-        mov     [r8], rcx       ; Write into old stack top.
-        jne     sle_loop
-        cmp     r8, loops       ; Check if loop stack was empty.
-        je      eof_error
-        cmp     rsi, r9
-        jne     sle_loop
+        lea     r9, [rdx-8] ; Top of loop stack, ignoring current loop.
+    .loop:
+        mov     r8b, [rcx]
+        inc     rcx
+        test    r8b, r8b
+        jz      .error_eof
+      .start_loop:
+        cmp     r8b, '['
+        jne     .end_loop
+        mov     [rdx], rcx
+        add     rdx, 8
+        jmp     .loop
+      .end_loop:
+        cmp     r8b, ']'
+        jne     .loop
+        sub     rdx, 8
+        cmp     rdx, r9
+        jne     .loop
+    .exit:
+        mov     rax, rcx
         ret
+    .error_eof:
+        mov     cl, r8b
+        jmp     eof_error
 
 ;; ==== char *seek_comment_end(file_contents, file_end_ptr, stride) ====
   seek_comment_end:
@@ -638,6 +639,8 @@ section '.code' code readable executable
 ;; ==== eof_error_warn(ch) ====
   eof_error_warn:
         push    rbp
+        mov     rbp, rsp
+        mov     rdx, rcx
         lea     rcx, [eof_error_msg]
         sub     rsp, 32
         call    [printf]
@@ -648,6 +651,8 @@ section '.code' code readable executable
 ;; ==== eof_error(ch) ====
   eof_error:
         and     spl, 0F0h
+        xor     ecx, ecx
+        mov     cl, dl
         call    eof_error_warn
         mov     rcx, 1          ; Exit Failure.
         call    [ExitProcess]
