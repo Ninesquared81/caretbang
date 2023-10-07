@@ -122,8 +122,6 @@ section '.code' code readable executable
         cmp     bl, ']'
         jne     cb_put_aux
         mov     rdx, ']'
-        cmp     rsi, loops
-        je      bad_char_error
         mov     r13, rsi        ; Save old value of rsi.
         sub     rsi, 8
         mov     r12, [rsi]      ; Loop start address.
@@ -187,8 +185,6 @@ section '.code' code readable executable
     .loop:
         mov     r8b, [rcx]
         inc     rcx
-        test    r8b, r8b
-        jz      .error_eof
       .start_loop:
         cmp     r8b, '['
         jne     .end_loop
@@ -204,9 +200,6 @@ section '.code' code readable executable
     .exit:
         mov     rax, rcx
         ret
-    .error_eof:
-        mov     cl, r8b
-        jmp     eof_error
 
 ;; ==== char *seek_comment_end(file_contents, file_end_ptr, stride) ====
   seek_comment_end:
@@ -428,15 +421,17 @@ section '.code' code readable executable
         push    rsi ; Source buffer end
         push    r12 ; File contents buffer end
         push    r13 ; Stride (important for multibyte encodings).
+        push    r14 ; Loop counter.
         mov     rbp, rsp
     .main_body:
-        push    rax ; Dummy push to align stack.
+        ;; int3
         lea     rbx, [source]
         lea     rsi, [source + source_size]
         lea     r12, [rcx + rdx]
         cmp     rcx, r12
         jg      .error_memory
         mov     r13, 1 ; Default stride for ASCII and UTF-8
+        xor     r14, r14 ; Set loop counter to zero.
     .guess_encoding:
         ;; Look for a BOM.
         ;; We check for UTF-16 BE/LE and if not, assume ASCII/UTF-8/Windows-1252.
@@ -479,10 +474,30 @@ section '.code' code readable executable
         jmp     .main_loop_update
       .comment_end:
         cmp     dil, ')'
-        jne     .other_instructions
+        jne     .loop_start
         xor     ecx, ecx
         mov     cl, dil
         call    bad_char_error_warn
+        jmp     .error
+      .loop_start:
+        cmp     dil, '['
+        jne     .loop_end
+        inc     r14
+        jmp     .instruction
+      .loop_end:
+        cmp     dil, ']'
+        jne     .other_instructions
+        mov     rax, r14
+        dec     r14
+        test    rax, rax
+        jnz     .instruction
+        push    rcx
+        push    rdx
+        xor     ecx, ecx
+        mov     cl, dil
+        call    bad_char_error_warn
+        pop     rcx
+        pop     rdx
         jmp     .error
       .other_instructions:
         cmp     dil, '^'
@@ -505,10 +520,6 @@ section '.code' code readable executable
         je      .instruction
         cmp     dil, ','
         je      .instruction
-        cmp     dil, '['
-        je      .instruction
-        cmp     dil, ']'
-        je      .instruction
         cmp     dil, '>'
         je      .instruction
         cmp     dil, '<'
@@ -530,8 +541,14 @@ section '.code' code readable executable
         jl      .main_loop
     .main_loop_end:
         mov     rax, 1   ; Success.
+        test    r14, r14
+        jz      .exit
+        mov     ecx, '['
+        call    eof_error_warn
+        xor     rax, rax
     .exit:
         mov     rsp, rbp
+        pop     r14
         pop     r13
         pop     r12
         pop     rsi
