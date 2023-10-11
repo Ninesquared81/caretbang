@@ -110,12 +110,16 @@ section '.code' code readable executable
         test    al, al
         jnz     main_loop       ; Continue into loop.
         push    rsp
+        push    rbp
+        mov     rbp, rsp
         and     spl, 0F0h
         mov     rcx, r14
-        mov     r14, rsi
+        mov     rdx, rsi
         call    seek_loop_end
         mov     r14, rax
         sub     rsi, 8          ; Pop loop address.
+        mov     rsp, rbp
+        pop     rbp
         pop     rsp
         jmp     main_loop
   cb_loop_end:
