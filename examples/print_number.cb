@@ -1,0 +1,74 @@
+( This is a program for printing numbers in ^!.
+|
+| The general approach is to store the digits on aux by repeated Euclidean
+| division by 10, then printing in left-to-right order (as stored on aux).
+|   It is notable that this program involves a few non-trivial sub-programs.
+| Firstly, we need a way to compute the quotient and remainder of two numbers.
+| ^! doesn't have a divmod instruction, so we have to do it ourselves using
+| repeated subtraction.
+|   In order to compute this, we need an inequality check (namely, n >= b).
+| Equality (and hence non-equality) checks are easy in ^!: just subtract two
+| numbers and see if the result is zero or not (you can use loops to act on that
+| condition). However, inequlities are a lot tirckier. The inequality in this
+| program is (>=), however, (<) can be found by the same algorithm simply by
+| flipping the condition which is saved on aux. From these two inequalities, (>)
+| and (<=) are trivial, by simply swapping the arguments.
+|  The calculation of (>=) is based on the following theorem:
+| Given that x, y >= 0,
+|                             x >= y
+| <=>                     x - y >= 0
+| <=> forall 0 <= r <= y, x - r >= 0.
+| Hence, if there exists some r in that range with x - r = 0, then x < y,
+| otherwise, x >= y.
+)
+
+
+^^!!-               sample integer (254)
+^!!!!!:+            push 10
+
+^![                 do while loop
+    (Compute n divmod b.)
+                    (NOTE: b = 10)
+    ^>              store quotient (initally 0) on aux for later
+    %:@:@%          get (n b n b) on stack
+
+    (Compare n >= b)
+                    (NOTE: Relabel n and b as x and y.)
+    ^!>             initialise result to true (1) and store on aux
+    :[              while (y != 0)
+        %:@%        (x y --> x y x)
+        :[*         if (x != 0)
+            ^!-%    decrement y  (main... (y-1) x)
+            ^!-%    decrement x  (main... (x-1) (y-1))
+            ^^!-    push (-1) to skip else
+        ^]
+        ![          else
+            <*^>    set conditon to false
+            *^      zero out y (main... x=0 y=0)
+        ^]
+    :]
+    **              drop x and y
+    <               load result from aux
+
+    (Compute quotient and remainder.)
+    [               while (n >= b)
+        :>-<        decrement n by b
+        <!>         increment quotient
+        %:@:@%      get (n b n b) again
+        ^!>:[%:@%:[*^!-%^!-%^^!-^]![<*^>*^^]:]**< (conditon n >= b)
+    ]
+    %               swap n and b (NOTE: n = r, the remainder.)
+    <%              get q back and swap it with r
+
+    (Save digits.)
+    >               r is the current digit
+    :@%             get (q b q) to get to the same stack state as the top of the loop
+]                   loop while (q != 0)
+
+^!!!!:+:+::++       push 48 ('0') to the stack
+;[                  while aux has elements
+    :<              duplicate 48 and bring over a digit
+    +.              add the digit to 48 (to get in ASCII range '0'--'9') and print
+;]
+*                   drop the 48
+.                   print newline at end (NOTE: we are cheekily using the same 10 from before.)
