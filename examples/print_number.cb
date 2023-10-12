@@ -14,11 +14,13 @@
 | flipping the condition which is saved on aux. From these two inequalities, (>)
 | and (<=) are trivial, by simply swapping the arguments.
 |  The calculation of (>=) is based on the following theorem:
+|
 | Given that x, y >= 0,
-|                             x >= y
-| <=>                     x - y >= 0
-| <=> forall 0 <= r <= y, x - r >= 0.
-| Hence, if there exists some r in that range with x - r = 0, then x < y,
+|                            x >= y
+| <=>                    x - y >= 0
+| <=> forall 0 <= r < y, x - r >= 0.
+|
+|   Hence, if there exists some r in that range with x - r = 0, then x < y,
 | otherwise, x >= y.
 )
 
