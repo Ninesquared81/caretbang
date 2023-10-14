@@ -1,0 +1,77 @@
+( This is a program to determine whether a number is an Armstrong number.
+| 
+| An armstrong number has the property that x = d1d2...dn = d1^n + d2^n + ... + dn^n.
+| For example, 153 is an Armstrong number since 1^3 + 5^3 + 3^3 = 1 + 125 + 27 = 153.
+| On the other hand, 12 is not an Armstrong number since 1^2 + 2^2 = 5 != 12.
+)
+
+
+^!!!!:+::+::++:@!!:@ (48 10 10 48)
+,%-             subtract 48 from input
+^^>>            initialise number and count to zero and store both on aux
+:@              (48 10 (in-48) (in-48) 10)
+(Compare (in-48) < 10.)
+^>              initialise result to true (1) and store on aux
+:[              while (y != 0)
+    %:@%        (x y --> x y x)
+    :[*         if (x != 0)
+        ^!-%    decrement y  (main... (y-1) x)
+        ^!-%    decrement x  (main... (x-1) (y-1))
+        ^^!-    push (-1) to skip else
+    ^]
+    ![          else
+        <!>     set conditon to false
+        *^      zero out y (main... x=0 y=0)
+    ^]
+:]
+**              drop x and y
+<               load result from aux
+
+[               while ((in-48) < 10)
+    <:+::+:++   mulitply previous digit by 10
+    %:          duplicate digit
+    <!          increment count
+    %>>         store digit and count back on aux
+    +>          add new digit and store back on aux
+    %:@:@       restore stack to (48 10 10 48)
+    ,%-:@       set up next input
+    ^>:[%:@%:[*^!-%^!-%^^!-^]![<!>*^^]:]**<
+]
+*               drop last input
+<<              get number and count from aux
+
+^%              initialise accumulator to 0
+;[
+    :<%         duplicate n and get digit from aux
+    (Compute d^n.)
+    ^!>             initialise accumulator to 1
+    :[
+        %: (n d d)
+        <           get accumulator from aux
+        (Compute d * acc.)
+        ^>          initialise result to 0
+        :[          for (; b != 0; b--)
+            %:      duplicate a
+            <+>     add a to result
+            %       swap a and b (b on top)
+        ^!-:]       decrement b and loop
+        **          drop a and b
+        %           swap d and n (n on top)
+    ^!-:]           decrement n and loop
+    **              drop d and n
+    <               get result from aux
+    @+          add power to accumulator
+    %           get n back on top
+;]
+*               drop n
+-               subtract sum of digit powers from original number
+^!!!!:+:+::+:++
+%:[             if not equal
+    *
+    ^!!-
+    .           print 'N'
+^^!-^]![        else
+    ^!!!!:+!+
+    .           print 'Y'
+^]
+:.              print newline
