@@ -99,6 +99,7 @@ void interpret_simple_node(struct ast_node *node) {
 	push_data_stack(&main_stack, a);
 	break;
     case INPUT: {
+        fflush(stdout);
 	int ch = getchar();
 	if (feof(stdin)) {
 	    ch = 0;
