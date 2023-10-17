@@ -1,0 +1,132 @@
+( This program serves as a simple reverse Polish notation calculator.
+| 
+| The supported operations are '+', '-', '*' and '/'. Intermediate values are stored
+| on aux and the top of aux is printed whenever a newline is encountered (its value
+| is preserved). Multiple calcutions may be performed on a single line.
+|   There are two stack-clearing commands. The clear last ('c') command discards the
+| top of the calculator's stack, while the clear all ('C') command clears the entire
+| stack.
+)
+
+^!!!!:::+:++::++!!.:+:+:+. print prompt
+,:[
+    :::::::       8 copies of character (4 operations + 2 clear instructions + number + newline)
+    ^!!!!!:+:
+    @-:[*^^!-^]![
+        ( newline )
+        ;[
+            :       duplicate 10
+            <:>%    get number from aux
+            ^>      digit count
+            ^![
+                (Compute n divmod 10.)
+                ^>                  initialise quotient to 0
+                ^![                 do while
+                    %:@:@%          (n 10 n 10)
+                    (x >= y (x = n, y = 10))
+                    ^!>
+                    :[              while (y != 0)
+                        %:@%        (x y x)
+                        :[*         if (x != 0)
+                            ^!-%    decrement y
+                            ^!-%    decrement x
+                            ^^!-    push (-1) to skip else
+                        ^]
+                        ![          else
+                            <*^>    set result to false
+                            *^      set y to 0 to exit loop
+                        ^]
+                    :]
+                    **              drop x and y
+                    <               get result from aux
+                    :[              if (n >= 10)
+                        @@
+                        :>-<        decrement n by 10
+                        <!>         increment quotient
+                        @
+                    ^]
+                ]                   loop while (n >= 10)
+                %                   swap n and 10 (NOTE: n = r, the remainder)
+                <%                  get q back and swap it with r
+                <!                  increment digit count
+                %>>                 put r on aux (underneath digit count)
+                :@%                 (q 10 q)
+            ]                       loop while (q != 0)
+            (Print digits.)
+            %*                  drop q
+            ^!!!!:+:+::++       push 48 ('0')
+            <:[                 for (; count != 0; count--)
+                %:              (count 48 48)
+                <+.             print digit
+                %               (48 count)
+            ^!-:]
+            **                  drop 48 and count
+            .                   print newline
+        ^]
+        ^!!!!:::+:++::++!!.:+:+:+.  print prompt
+    ^]
+    *                               drop 10
+    ^!!!!!:+:+:+!!:@-:[*^^!-^]![
+        ( * )
+        <<      get arguments
+        ^>      initialise result to zero
+        :[      for (; b != 0; b--)
+           %:   duplicate a
+           <+>  add a to result
+           %    swap a and b again
+        ^!-:]   decrement b
+        **      drop a and b
+        (Note: result left on aux.)
+    ^]
+    !:@-:[*^^!-^]![
+        ( + )
+        <<+>
+    ^]
+    !!:@-:[*^^!-^]![
+        ( - )
+        <<%->
+    ^]
+    !!:@-:[*^^!-^]![
+        ( / )
+        <<%     get arguments
+        ^>%:@:@%
+        ^!>:[%:@%:[*^!-%^!-%^^!-^]![<*^>*^^]:]**<[:
+            >-<
+            <!>
+            %:@:@%
+        ^!>:[%:@%:[*^!-%^!-%^^!-^]![<*^>*^^]:]**<]
+        **        
+    ^]
+    ^!!!!!:+:++
+    :@-:[*^^!-^]![
+        ( C )
+        ;[<*;]  clear the auxiliary stack
+    ^]
+    ^!!!!:+:+:++
+    -:[*^^!-^]![
+        ( c )
+        ;[<*^]  pop top element of aux (if there is one)
+    ^]
+    (Note: this must be at the end of the loop.)
+    ^!!!!:+:+::++:@%
+    -:
+    ^!!!!!:+
+    ^>:[%:@%:[*^!-%^!-%^^!-^]![<!>*^^]:]**<:[* if (in-48 < 10)
+        ( number )
+        ^>
+        ^![
+            <:+::+:++   multiply number by 10
+            +>          add digit to number and store back on aux
+            :,%-:       get next digit
+            ^!!!!!:+
+            ^>:[%:@%:[*^!-%^!-%^^!-^]![<!>*^^]:]**<
+        ]
+        +   add 48 back to last read character
+    ^^!-^]
+    ![
+       **
+       ,
+    ^]
+:]
+
+^>?[*<!>?]<$
