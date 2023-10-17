@@ -1,7 +1,11 @@
-( This is a program for printing numbers in ^!.
+( This is a program for printing numbers in a given base (2--36) in ^!.
 |
 | The general approach is to store the digits on aux by repeated Euclidean
-| division by 10, then printing in left-to-right order (as stored on aux).
+| division by the base, then printing in left-to-right order (as stored on aux).
+| For base-11 and up, the letters 'A', 'B', ... are used for digits 10, 11, ...
+| (an extension of hexadecimal). Bases larger than 36 will still print results,
+| but may be confusing (especially base 43+, which use the lowercase ASCII letters
+| distinctly from the uppercase letters).
 |   It is notable that this program involves a few non-trivial sub-programs.
 | Firstly, we need a way to compute the quotient and remainder of two numbers.
 | ^! doesn't have a divmod instruction, so we have to do it ourselves using
@@ -26,12 +30,11 @@
 
 
 ^^!!-               sample integer (254)
-^!!!!!:+            push 10
+^!!!!:+:+           base (e.g. 16)
 
 ^![                 do while loop
     (Compute n divmod b.)
                     (NOTE: b = 10)
-    ^>              store quotient (initally 0) on aux for later
     %:@:@%          get (n b n b) on stack
 
     (Compare n >= b)
@@ -53,6 +56,7 @@
     <               load result from aux
 
     (Compute quotient and remainder.)
+    ^>              store quotient (initally 0) on aux for later
     [               while (n >= b)
         :>-<        decrement n by b
         <!>         increment quotient
@@ -67,9 +71,14 @@
     :@%             get (q b q) to get to the same stack state as the top of the loop
 ]                   loop while (q != 0)
 
+^!!!!!:+
 ^!!!!:+:+::++       push 48 ('0') to the stack
 ;[                  while aux has elements
-    :<              duplicate 48 and bring over a digit
+    %:@:@           (10 48 48 10)
+    <:@             bring over a digit and compare with 10
+    ^!>:[%:@%:[*^!-%^!-%^^!-^]![<*^>*^^]:]**<[ if (digit >= 10)
+        !!!!!!!     increment digit to skip characters between '9' and 'A'
+    ^]
     +.              add the digit to 48 (to get in ASCII range '0'--'9') and print
 ;]
 *                   drop the 48
